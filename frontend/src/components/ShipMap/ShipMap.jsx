@@ -1,76 +1,83 @@
-// src/components/ShipMap/ShipMap.jsx
 import React, { useMemo } from "react";
 import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 
-import AutoFollow from "./AutoFollow";
-import { createShipIcon, createPortDivIcon } from "./icons";
-import { isValidCoordinate, processPorts, normalizeRotation } from "./utils";
+import AutoFollow from "../ShipMap/AutoFollow";
+import { createShipIcon, createPortDivIcon } from "../ShipMap/icons";
+import { isValidCoordinate, normalizeRotation } from "../ShipMap/utils";
 
 const ICON_ROTATION_OFFSET = 0;
 
 const ShipMap = React.memo(function ShipMap({
   latitude,
   longitude,
-  name,
+  shipName,
   COG,
   heading,
-  zoom = 10,
   ports = [],
+  zoom = 10,
+  showShip = true,
+  showPorts = true,
 }) {
   const lat = latitude == null ? null : Number(latitude);
   const lng = longitude == null ? null : Number(longitude);
   const rotationRaw = heading ?? COG ?? 0;
   const rotation = normalizeRotation(rotationRaw, ICON_ROTATION_OFFSET);
 
+  // ✅ Always call hooks at the top
   const shipIcon = useMemo(() => createShipIcon(), []);
   const portIcon = useMemo(() => createPortDivIcon(), []);
-  const processedPorts = useMemo(() => processPorts(ports), [ports]);
 
-  if (!isValidCoordinate(lat) || !isValidCoordinate(lng)) {
-    return (
-      <div className="no-location">
-        <span>No location available</span>
-      </div>
-    );
-  }
+  // Center map
+  const center = useMemo(() => {
+    if (showShip && isValidCoordinate(lat) && isValidCoordinate(lng)) return [lat, lng];
+    if (showPorts && ports.length > 0) return [ports[0].lat, ports[0].lng];
+    return [51.0, 4.0]; // fallback
+  }, [lat, lng, ports, showShip, showPorts]);
+
+  const invalidShipLocation = showShip && (!isValidCoordinate(lat) || !isValidCoordinate(lng));
 
   return (
-    <MapContainer
-      center={[lat, lng]}
-      zoom={zoom}
-      scrollWheelZoom
-      className="map-container"
-    >
-      <TileLayer
-        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-        maxZoom={18}
-        minZoom={3}
-      />
+    <>
+      {invalidShipLocation && (
+        <div className="no-location mb-2">
+          <span>No ship location available</span>
+        </div>
+      )}
 
-      <AutoFollow lat={lat} lng={lng} enabled />
+      <MapContainer center={center} zoom={zoom} scrollWheelZoom className="map-container h-[400px] w-full">
+        <TileLayer
+          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          maxZoom={18}
+          minZoom={3}
+        />
 
-      {/* Ship marker */}
-      <Marker position={[lat, lng]} icon={shipIcon}>
-        <Popup>
-          <strong>{name ?? "Ship"}</strong>
-          <br />
-          Heading: {rotationRaw}°<br />
-          COG: {COG ?? "—"}
-        </Popup>
-      </Marker>
+        {showShip && !invalidShipLocation && (
+          <>
+            <AutoFollow lat={lat} lng={lng} enabled />
+            <Marker position={[lat, lng]} icon={shipIcon}>
+              <Popup>
+                <strong>{shipName ?? "Ship"}</strong>
+                <br />
+                Heading: {rotationRaw}°<br />
+                COG: {COG ?? "—"}
+              </Popup>
+            </Marker>
+          </>
+        )}
 
-      {/* Port markers */}
-      {processedPorts.map((port, i) => (
-        <Marker key={i} position={[port.lat, port.lng]} icon={portIcon}>
-          <Popup>
-            <strong>⚓ {port.name}</strong>
-            <br />
-            Lat: {port.lat}, Lng: {port.lng}
-          </Popup>
-        </Marker>
-      ))}
-    </MapContainer>
+        {showPorts &&
+          ports.map((port, i) => (
+            <Marker key={i} position={[port.lat, port.lng]} icon={portIcon}>
+              <Popup>
+                <strong>⚓ {port.name}</strong>
+                <br />
+                Lat: {port.lat}, Lng: {port.lng}
+              </Popup>
+            </Marker>
+          ))}
+      </MapContainer>
+    </>
   );
 });
 

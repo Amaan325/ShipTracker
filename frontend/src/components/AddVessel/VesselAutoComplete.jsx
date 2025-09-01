@@ -1,7 +1,7 @@
 // VesselAutocomplete.js
 import React, { useState, useEffect, useCallback } from "react";
 import InputField from "./InputField";
-import { searchShips } from "../services/api"; // local DB search only
+import { searchShips } from "../../services/api"; // local DB search only
 import debounce from "lodash.debounce";
 
 const VesselAutocomplete = ({ value, onChange, onSelect, selectedVessel }) => {

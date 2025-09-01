@@ -1,12 +1,12 @@
 // src/pages/AddVessel.jsx
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useSnackbar } from "notistack";
 import { useDispatch } from "react-redux";
 
-import InputField from "../components/InputField";
-import SelectField from "../components/SelectField";
-import VesselAutocomplete from "../components/VesselAutoComplete";
+import InputField from "../components/AddVessel/InputField";
+import SelectField from "../components/AddVessel/SelectField";
+import VesselAutocomplete from "../components/AddVessel/VesselAutoComplete";
 import { getPorts, getEngineers, addVessel } from "../services/api";
 import { setCurrentVessel } from "../redux/vesselSlice";
 
@@ -16,7 +16,7 @@ const AddVessel = () => {
   const dispatch = useDispatch();
   const isSubmittingRef = useRef(false);
 
-  // Form state
+  // -------------------- State --------------------
   const [vesselCodeQuery, setVesselCodeQuery] = useState("");
   const [selectedVessel, setSelectedVessel] = useState(null);
   const [mmsi, setMmsi] = useState("");
@@ -24,125 +24,127 @@ const AddVessel = () => {
   const [selectedEngineer, setSelectedEngineer] = useState("");
   const [ports, setPorts] = useState([]);
   const [engineers, setEngineers] = useState([]);
-  const [showLoading, setShowLoading] = useState(false);
+  const [loading, setLoading] = useState(false);
 
-  // Fetch ports & engineers on mount
+  // -------------------- Fetch Ports & Engineers --------------------
   useEffect(() => {
+    let mounted = true; // prevent state updates if unmounted
     const fetchData = async () => {
       try {
-        const [portsRes, engineersRes] = await Promise.all([
-          getPorts(),
-          getEngineers(),
-        ]);
+        const [portsRes, engineersRes] = await Promise.all([getPorts(), getEngineers()]);
+
+        if (!mounted) return;
 
         setPorts(
-          portsRes.data.map((port) => ({
-            value: port._id,
-            label: port.arrival_port_name,
-          }))
+          portsRes.data.map((p) => ({ value: p._id, label: p.arrival_port_name }))
         );
-
         setEngineers(
-          engineersRes.data.map((eng) => ({
-            value: eng._id,
-            label: eng.engineer_name,
-          }))
+          engineersRes.data.map((e) => ({ value: e._id, label: e.engineer_name }))
         );
       } catch (err) {
-        enqueueSnackbar("Failed to load ports or engineers", {
-          variant: "error",
-        });
+        enqueueSnackbar("Failed to load ports or engineers", { variant: "error" });
       }
     };
+
     fetchData();
+    return () => {
+      mounted = false;
+    };
   }, [enqueueSnackbar]);
 
-  // Handle form submission
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  // -------------------- Handlers --------------------
+  const handleVesselInputChange = useCallback((e) => {
+    setVesselCodeQuery(e.target.value);
+    setSelectedVessel(null);
+    setMmsi("");
+  }, []);
 
-    if (isSubmittingRef.current) return;
-    isSubmittingRef.current = true;
-    setShowLoading(true);
+  const handleVesselSelect = useCallback((v) => {
+    setSelectedVessel(v);
+    setVesselCodeQuery(v.name);
+    setMmsi(v.mmsi);
+  }, []);
 
-    if (!selectedVessel && !vesselCodeQuery) {
-      enqueueSnackbar("Please enter a vessel name or select an existing one", {
-        variant: "warning",
-      });
-      isSubmittingRef.current = false;
-      setShowLoading(false);
-      return;
-    }
+  const handlePortChange = useCallback((e) => setSelectedPort(e.target.value), []);
+  const handleEngineerChange = useCallback((e) => setSelectedEngineer(e.target.value), []);
 
-    const vesselNameToSend = selectedVessel
-      ? selectedVessel.name
-      : vesselCodeQuery;
+  const handleSubmit = useCallback(
+    async (e) => {
+      e.preventDefault();
+      if (isSubmittingRef.current) return;
 
-    try {
-      const res = await addVessel({
-        name: vesselNameToSend,
-        mmsi,
-        port: selectedPort,
-        engineer: selectedEngineer,
-      });
+      if (!selectedVessel && !vesselCodeQuery) {
+        enqueueSnackbar("Please enter a vessel name or select an existing one", { variant: "warning" });
+        return;
+      }
 
-      // Save the whole vessel object in Redux
-      dispatch(setCurrentVessel(res.data.vessel));
+      isSubmittingRef.current = true;
+      setLoading(true);
 
-      enqueueSnackbar(
-        res.data.message.includes("already exists")
+      const vesselNameToSend = selectedVessel?.name ?? vesselCodeQuery;
+
+      try {
+        const res = await addVessel({
+          name: vesselNameToSend,
+          mmsi,
+          port: selectedPort,
+          engineer: selectedEngineer,
+        });
+
+        dispatch(setCurrentVessel(res.data.vessel));
+
+        const message = res.data.message.includes("already exists")
           ? "Vessel already exists 🚢 Tracking now..."
-          : "Vessel added successfully 🚢 Tracking started...",
-        {
-          variant: res.data.message.includes("already exists")
-            ? "info"
-            : "success",
-        }
-      );
+          : "Vessel added successfully 🚢 Tracking started...";
 
-      navigate("/ship-details");
-    } catch (err) {
-      enqueueSnackbar("Error adding vessel ❌", { variant: "error" });
-      console.error(err);
-    } finally {
-      isSubmittingRef.current = false;
-      setShowLoading(false);
-    }
-  };
+        enqueueSnackbar(message, {
+          variant: res.data.message.includes("already exists") ? "info" : "success",
+        });
 
+        navigate("/ship-details");
+      } catch (err) {
+        console.error(err);
+        enqueueSnackbar("Error adding vessel ❌", { variant: "error" });
+      } finally {
+        isSubmittingRef.current = false;
+        setLoading(false);
+      }
+    },
+    [
+      selectedVessel,
+      vesselCodeQuery,
+      mmsi,
+      selectedPort,
+      selectedEngineer,
+      dispatch,
+      enqueueSnackbar,
+      navigate,
+    ]
+  );
+
+  // -------------------- Memoized button text --------------------
+  const submitText = useMemo(() => (loading ? "Processing..." : "Add Vessel"), [loading]);
+
+  // -------------------- Render --------------------
   return (
     <div className="max-w-lg mx-auto mt-12 p-8 bg-white shadow-lg rounded-2xl">
-      <h2 className="text-3xl font-bold mb-6 text-center text-gray-800">
-        Add Vessel
-      </h2>
-
+      <h2 className="text-3xl font-bold mb-6 text-center text-gray-800">Add Vessel</h2>
       <form className="flex flex-col space-y-4" onSubmit={handleSubmit}>
-        {/* Vessel autocomplete */}
         <VesselAutocomplete
           value={vesselCodeQuery}
           selectedVessel={selectedVessel}
-          onChange={(e) => {
-            setVesselCodeQuery(e.target.value);
-            setSelectedVessel(null);
-            setMmsi("");
-          }}
-          onSelect={(v) => {
-            setSelectedVessel(v);
-            setVesselCodeQuery(v.name);
-            setMmsi(v.mmsi);
-          }}
+          onChange={handleVesselInputChange}
+          onSelect={handleVesselSelect}
         />
 
-        {/* Port selection */}
         <SelectField
           value={selectedPort}
-          onChange={(e) => setSelectedPort(e.target.value)}
+          onChange={handlePortChange}
           options={ports}
           placeholder="Select Port"
           required
         />
 
-        {/* MMSI */}
         <InputField
           type="number"
           placeholder="MMSI"
@@ -152,10 +154,9 @@ const AddVessel = () => {
           readOnly={!!selectedVessel}
         />
 
-        {/* Engineer */}
         <SelectField
           value={selectedEngineer}
-          onChange={(e) => setSelectedEngineer(e.target.value)}
+          onChange={handleEngineerChange}
           options={engineers}
           placeholder="Select Engineer"
           required
@@ -164,11 +165,11 @@ const AddVessel = () => {
         <button
           type="submit"
           className={`bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition font-medium shadow ${
-            showLoading ? "opacity-50 cursor-not-allowed" : ""
+            loading ? "opacity-50 cursor-not-allowed" : ""
           }`}
-          disabled={showLoading}
+          disabled={loading}
         >
-          {showLoading ? "Processing..." : "Add Vessel"}
+          {submitText}
         </button>
       </form>
     </div>

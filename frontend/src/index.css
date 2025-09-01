@@ -1,0 +1,89 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Map container */
+.map-container {
+  height: 24rem; /* adjust height */
+  width: 100%;
+}
+
+/* No location placeholder */
+.no-location {
+  height: 24rem;
+  background-color: #e5e7eb;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.no-location span {
+  color: #6b7280;
+}
+
+/* Radar port marker */
+.radar-port-marker {
+  background: transparent !important;
+  border: none !important;
+}
+
+.radar-container {
+  position: relative;
+  width: 60px;
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Solid center circle */
+.radar-circle {
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  background: #ff4d4f;
+  border: 2px solid white;
+  border-radius: 50%;
+  z-index: 3;
+  box-shadow: 0 0 8px rgba(255, 77, 79, 0.7);
+}
+
+/* Pulsating radar waves */
+.radar-pulse {
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  border: 2px solid #ff4d4f;
+  border-radius: 50%;
+  opacity: 0;
+  z-index: 2;
+  animation: radar-pulse 3s infinite;
+}
+
+.radar-pulse.delay-1 {
+  animation-delay: 1s;
+}
+
+.radar-pulse.delay-2 {
+  animation-delay: 2s;
+}
+
+/* Radar pulse animation */
+@keyframes radar-pulse {
+  0% {
+    transform: scale(1);
+    opacity: 0.8;
+  }
+  100% {
+    transform: scale(3);
+    opacity: 0;
+  }
+}
+
+/* Port center icon */
+.port-center {
+  position: absolute;
+  z-index: 4;
+  color: white;
+  font-size: 14px;
+  text-shadow: 0 0 4px rgba(0, 0, 0, 0.8);
+}

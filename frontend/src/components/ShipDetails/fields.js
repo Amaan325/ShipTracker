@@ -29,5 +29,5 @@ export const fieldMap = {
   TIME: "Last Updated",
     port: "Port",        // ✅ Add this
   engineer: "Engineer", // ✅ Add this
-  isActive : "Active"
+  // isActive : "Active"
 };

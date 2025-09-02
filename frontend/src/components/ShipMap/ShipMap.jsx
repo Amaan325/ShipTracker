@@ -1,3 +1,4 @@
+// src/components/ShipMap/ShipMap.jsx
 import React, { useMemo } from "react";
 import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
@@ -15,7 +16,7 @@ const ShipMap = React.memo(function ShipMap({
   COG,
   heading,
   ports = [],
-  zoom = 10,
+  zoom = 10, // default zoom passed in
   showShip = true,
   showPorts = true,
 }) {
@@ -28,14 +29,24 @@ const ShipMap = React.memo(function ShipMap({
   const shipIcon = useMemo(() => createShipIcon(), []);
   const portIcon = useMemo(() => createPortDivIcon(), []);
 
+  // Adjust zoom: if showing a ship, zoom out a bit
+  const mapZoom = useMemo(() => {
+    if (showShip && isValidCoordinate(lat) && isValidCoordinate(lng)) {
+      return 6; // 👈 Less zoomed in for ship
+    }
+    return zoom; // fallback to default zoom
+  }, [showShip, lat, lng, zoom]);
+
   // Center map
   const center = useMemo(() => {
-    if (showShip && isValidCoordinate(lat) && isValidCoordinate(lng)) return [lat, lng];
+    if (showShip && isValidCoordinate(lat) && isValidCoordinate(lng))
+      return [lat, lng];
     if (showPorts && ports.length > 0) return [ports[0].lat, ports[0].lng];
     return [51.0, 4.0]; // fallback
   }, [lat, lng, ports, showShip, showPorts]);
 
-  const invalidShipLocation = showShip && (!isValidCoordinate(lat) || !isValidCoordinate(lng));
+  const invalidShipLocation =
+    showShip && (!isValidCoordinate(lat) || !isValidCoordinate(lng));
 
   return (
     <>
@@ -45,7 +56,12 @@ const ShipMap = React.memo(function ShipMap({
         </div>
       )}
 
-      <MapContainer center={center} zoom={zoom} scrollWheelZoom className="map-container h-[400px] w-full">
+      <MapContainer
+        center={center}
+        zoom={mapZoom}
+        scrollWheelZoom
+        className="map-container h-[400px] w-full"
+      >
         <TileLayer
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           maxZoom={18}

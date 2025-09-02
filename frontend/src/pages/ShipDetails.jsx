@@ -1,3 +1,4 @@
+// src/pages/ShipDetails.js
 import React, { useState, useMemo, useCallback } from "react";
 import { useSelector } from "react-redux";
 
@@ -18,8 +19,13 @@ const ShipDetails = () => {
   const [showConflict, setShowConflict] = useState(true);
   const handleCloseConflict = useCallback(() => setShowConflict(false), []);
 
-  const displayData = useMemo(() => ({ ...vessel, ...aisData }), [vessel, aisData]);
+  // Merge vessel & AIS data
+  const displayData = useMemo(
+    () => (vessel ? { ...vessel, ...aisData } : null),
+    [vessel, aisData]
+  );
 
+  // Build details table entries
   const entries = useMemo(() => {
     if (!displayData) return [];
 
@@ -27,19 +33,27 @@ const ShipDetails = () => {
       .filter(([key]) => !HIDDEN_FIELDS.includes(key))
       .map(([key, label]) => {
         let value = displayData[key];
-        if (key === "port" && value) value = value.arrival_port_name ?? "-";
-        if (key === "engineer" && value) value = value.engineer_name ?? "-";
+
+        if (key === "port") value = value?.arrival_port_name ?? "-";
+        if (key === "engineer") value = value?.engineer_name ?? "-";
         if (key === "NAVSTAT") value = navStatusMap[value] ?? value;
         if (key === "SOG" && value) value = `${value} kn`;
         if (key === "DRAUGHT" && value) value = `${value} m`;
+
         return [label, value ?? "-"];
       });
   }, [displayData]);
 
-  if (!vessel) return <p className="text-center mt-8 text-gray-500">No vessel selected</p>;
+  if (!vessel) {
+    return <p className="text-center mt-8 text-gray-500">No vessel selected</p>;
+  }
+
+  const hasValidLocation =
+    displayData?.LATITUDE && displayData?.LONGITUDE;
 
   return (
     <div className="relative max-w-7xl mx-auto mt-8 p-4">
+      {/* Conflict Banner */}
       {conflict && showConflict && (
         <VesselConflictBanner conflict={conflict} onClose={handleCloseConflict} />
       )}
@@ -47,37 +61,48 @@ const ShipDetails = () => {
       <div className={conflict && showConflict ? "filter blur-sm pointer-events-none" : ""}>
         <h2 className="text-2xl font-bold mb-6">Ship Details</h2>
 
+        {/* Loading/Error Messages */}
         {loading && <p className="text-gray-500 mb-4">Loading live AIS data...</p>}
         {error && <p className="text-red-500 mb-4">{error}</p>}
 
+        {/* Map Section */}
         <div className="grid md:grid-cols-2 gap-6 mb-6">
-          {/* Ship Map */}
+          {/* Ship Location */}
           <div>
             <h3 className="text-lg font-bold mb-2">Ship Location</h3>
-            <ShipMap
-              latitude={displayData.LATITUDE}
-              longitude={displayData.LONGITUDE}
-              shipName={displayData.NAME ?? displayData.name}
-              COG={displayData.COG}
-              heading={displayData.HEADING}
-              showShip={true}
-              showPorts={false}
-              zoom={10}
-            />
+            {hasValidLocation ? (
+              <ShipMap
+                latitude={displayData.LATITUDE}
+                longitude={displayData.LONGITUDE}
+                shipName={displayData.NAME ?? displayData.name}
+                COG={displayData.COG}
+                heading={displayData.HEADING}
+                showShip={true}
+                showPorts={false}
+                zoom={10}
+              />
+            ) : (
+              <p className="text-gray-500">No live AIS data for this vessel.</p>
+            )}
           </div>
 
           {/* Ports Map */}
           <div>
             <h3 className="text-lg font-bold mb-2">Ports</h3>
-            <ShipMap
-              ports={ports}
-              showShip={false}
-              showPorts={true}
-              zoom={6}
-            />
+            {ports && ports.length > 0 ? (
+              <ShipMap
+                ports={ports}
+                showShip={false}
+                showPorts={true}
+                zoom={6}
+              />
+            ) : (
+              <p className="text-gray-500">No port data available.</p>
+            )}
           </div>
         </div>
 
+        {/* Details Table */}
         <ShipDetailsTable entries={entries} />
       </div>
     </div>

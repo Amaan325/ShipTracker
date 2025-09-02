@@ -18,6 +18,14 @@ const vesselSchema = new mongoose.Schema(
     // Allow full object storage
     port: { type: mongoose.Schema.Types.Mixed },
     engineer: { type: mongoose.Schema.Types.Mixed },
+    notified_48h: { type: Boolean, default: false },
+    notified_24h: { type: Boolean, default: false },
+    notified_arrival: { type: Boolean, default: false },
+    status: {
+      type: String,
+      enum: ["tracking", "arrived"],
+      default: "tracking",
+    },
 
     isActive: { type: Boolean, default: true },
   },

@@ -10,7 +10,7 @@ let failedBatches = []; // store failed batches temporarily
  */
 const initVesselQueue = async () => {
   const vessels = await Vessel.find({ isActive: true }).select("mmsi");
-  allVessels = vessels.map(v => v.mmsi);
+  allVessels = vessels.map((v) => v.mmsi);
 
   if (!queueInitialized) {
     vesselQueue = [...allVessels];
@@ -34,12 +34,14 @@ const getNextBatch = (batchSize = 50) => {
   const batch = vesselQueue.slice(0, batchSize);
   vesselQueue = vesselQueue.slice(batchSize);
 
-  const batchNumber = Math.ceil((allVessels.length - vesselQueue.length) / batchSize);
+  const batchNumber = Math.ceil(
+    (allVessels.length - vesselQueue.length) / batchSize
+  );
   const totalBatches = Math.ceil(allVessels.length / batchSize);
 
   console.log(
     `📦 Processing batch ${batchNumber} of ${totalBatches} (${batch.length} ships). ` +
-    `Ships left in queue: ${vesselQueue.length}. Failed batches waiting: ${failedBatches.length}`
+      `Ships left in queue: ${vesselQueue.length}. Failed batches waiting: ${failedBatches.length}`
   );
 
   return batch;
@@ -51,14 +53,23 @@ const getNextBatch = (batchSize = 50) => {
 const requeueBatch = (batch) => {
   vesselQueue.push(...batch);
   failedBatches.push(batch);
-  console.log(`🔁 Failed batch requeued at the end (${batch.length} ships). Total failed batches: ${failedBatches.length}`);
+  console.log(
+    `🔁 Failed batch requeued at the end (${batch.length} ships). Total failed batches: ${failedBatches.length}`
+  );
 };
 
 /**
  * Remove batch from failedBatches once successfully processed
  */
 const removeFailedBatch = (batch) => {
-  failedBatches = failedBatches.filter(f => !batch.every(mmsi => f.includes(mmsi)));
+  failedBatches = failedBatches.filter(
+    (f) => !batch.every((mmsi) => f.includes(mmsi))
+  );
 };
 
-module.exports = { initVesselQueue, getNextBatch, requeueBatch, removeFailedBatch };
+module.exports = {
+  initVesselQueue,
+  getNextBatch,
+  requeueBatch,
+  removeFailedBatch,
+};

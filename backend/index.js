@@ -5,6 +5,9 @@ require("dotenv").config();
 const cookieParser = require("cookie-parser");
 const connectDB = require("./db/connectdb");
 
+// WhatsApp Service
+const { startWhatsApp, sendWhatsAppNotification } = require("./src/services/whatsapp");
+
 // Routes
 const portRoutes = require("./src/routes/portRoutes");
 const engineerRoutes = require("./src/routes/engineerRoutes");
@@ -20,10 +23,20 @@ app.use(express.json());
 app.use(cookieParser());
 app.use(cors({ origin: "http://localhost:5173", credentials: true }));
 
-// Connect DB and start cron after successful connection
-connectDB().then(() => {
+// Connect DB, start WhatsApp, then cron
+connectDB().then(async () => {
   console.log("✅ Connected to MongoDB");
-  startVesselTracking(); // 🔥 Start cron safely
+
+  // Start WhatsApp
+  await startWhatsApp();
+
+  // 🔹 Test message after WhatsApp connection
+  // setTimeout(async () => {
+  //   await sendWhatsAppNotification("923455388774", "Hello! This is a test 🚀");
+  // }, 5000);
+
+  // Start Vessel Tracking Cron
+  startVesselTracking();
 });
 
 // Routes

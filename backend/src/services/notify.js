@@ -1,19 +1,21 @@
-// services/notify.js
-const twilio = require("twilio");
+// notify.js (Baileys version)
+const { getSock } = require("./whatsapp")
 
-const client = twilio(process.env.TWILIO_SID, process.env.TWILIO_TOKEN);
-
-async function sendWhatsAppNotification(to, message) {
+/**
+ * Send a WhatsApp notification using Baileys
+ * @param {string} to - Engineer phone (E.164, e.g. 923001234567)
+ * @param {string} message - Text message
+ */
+const sendWhatsAppNotification = async (to, message) => {
   try {
-    await client.messages.create({
-      from: "whatsapp:+14155238886", // Twilio sandbox
-      to: `whatsapp:${to}`,
-      body: message,
-    });
-    console.log(`✅ WhatsApp sent to ${to}: ${message}`);
+    const sock = getSock()
+    const jid = `${to}@s.whatsapp.net`
+
+    await sock.sendMessage(jid, { text: message })
+    console.log(`✅ WhatsApp message sent to ${to}`)
   } catch (err) {
-    console.error("❌ WhatsApp send failed:", err.message);
+    console.error(`❌ Failed to send WhatsApp message to ${to}:`, err.message)
   }
 }
 
-module.exports = { sendWhatsAppNotification };
+module.exports = { sendWhatsAppNotification }

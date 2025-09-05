@@ -15,17 +15,17 @@ const normalizeVesselData = (data) => ({
   sog: data.sog || data.SOG,
   cog: data.cog || data.COG,
   draught: data.draught || data.DRAUGHT,
-  destination: data.dest || data.DEST,
+  destination: data.dest || data.DEST || data.destination,
   eta: data.eta || data.ETA,
- port: data.port
-  ? {
-      _id: data.port._id,
-      arrival_port_name: data.port.arrival_port_name,
-      unlocode: data.port.unlocode,
-      latitude: data.port.latitude ?? data.port.lat,
-      longitude: data.port.longitude ?? data.port.lng,
-    }
-  : null,
+  port: data.port
+    ? {
+        _id: data.port._id,
+        arrival_port_name: data.port.arrival_port_name,
+        unlocode: data.port.unlocode,
+        latitude: data.port.latitude ?? data.port.lat,
+        longitude: data.port.longitude ?? data.port.lng,
+      }
+    : null,
   engineer: data.engineer
     ? {
         _id: data.engineer._id,
@@ -45,7 +45,6 @@ const saveOrCheckVessel = async (req, res) => {
     console.log("📥 Incoming Vessel Data (Raw):", req.body);
 
     const vesselData = normalizeVesselData(req.body);
-    // console.log("✅ Normalized Vessel Data:", vesselData);
 
     // MMSI required
     if (!vesselData.mmsi) {
@@ -53,6 +52,21 @@ const saveOrCheckVessel = async (req, res) => {
       return res
         .status(400)
         .json({ success: false, message: "MMSI is required" });
+    }
+
+    // ✅ Destination vs Port UNLOCODE check
+    if (
+      vesselData.destination &&
+      vesselData.port?.unlocode &&
+      !vesselData.destination.trim().includes(vesselData.port.unlocode)
+    ) {
+      console.log(
+        `❌ Destination mismatch: AIS dest="${vesselData.destination.trim()}" vs Port UNLOCODE="${vesselData.port.unlocode}"`
+      );
+      return res.status(400).json({
+        success: false,
+        message: `Destination mismatch: Vessel destination (${vesselData.destination.trim()}) does not match Port UNLOCODE (${vesselData.port.unlocode}).`,
+      });
     }
 
     // Find vessel by MMSI
@@ -121,10 +135,9 @@ const saveOrCheckVessel = async (req, res) => {
 };
 
 /**
- * Deactivate a vessel by MMSI
+ * Deactivate (delete) a vessel by MMSI
  */
 const deactivateVessel = async (req, res) => {
-  // console.log("🗑️ Deactivate Vessel Request:", req.params);
   try {
     const { mmsi } = req.params;
     console.log(`🗑️ Deleting vessel with MMSI: ${mmsi}`);
@@ -138,17 +151,16 @@ const deactivateVessel = async (req, res) => {
         .json({ success: false, message: "Vessel not found" });
     }
 
-    // console.log("✅ Vessel Deleted:", vessel);
     return res.json({
       success: true,
       message: "Vessel deleted successfully",
       vessel,
     });
   } catch (err) {
-    // console.error("💥 Error deleting vessel:", err);
     return res
       .status(500)
       .json({ success: false, message: "Error deleting vessel" });
   }
 };
+
 module.exports = { saveOrCheckVessel, deactivateVessel };

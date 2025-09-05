@@ -6,7 +6,7 @@ const { updateVesselsQueue } = require("../src/services/vesselService");
  * Runs every minute to respect AISHub rate limits.
  */
 const startVesselTracking = () => {
-  cron.schedule("*/1 * * * *", async () => {
+  cron.schedule("*/3 * * * *", async () => {
     try {
       await updateVesselsQueue();
     } catch (err) {

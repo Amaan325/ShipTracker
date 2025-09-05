@@ -1,6 +1,7 @@
 // utils/eta.js
+// Haversine formula to calculate distance (in km)
 function haversineDistance(lat1, lon1, lat2, lon2) {
-  const R = 6371; // km
+  const R = 6371; // Earth radius in km
   const dLat = ((lat2 - lat1) * Math.PI) / 180;
   const dLon = ((lon2 - lon1) * Math.PI) / 180;
   const a =
@@ -11,16 +12,28 @@ function haversineDistance(lat1, lon1, lat2, lon2) {
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
-function calculateEtaHours(vessel, port) {
+// ETA in hours based on vessel position, port position & speed
+function calculateEtaHours(vesselData, port) {
   const distanceKm = haversineDistance(
-    vessel.latitude,
-    vessel.longitude,
+    vesselData.latitude,
+    vesselData.longitude,
     port.latitude,
     port.longitude
   );
-  const speedKmh = (vessel.sog || 10) * 1.852;
-  // knots -> km/h
-  return distanceKm / (speedKmh || 1);
+  const speedKmh = (vesselData.sog || 10) * 1.852; // knots → km/h
+  if (speedKmh < 0.5) return Infinity; // avoid divide by near-zero
+  return distanceKm / speedKmh;
 }
 
-module.exports = { calculateEtaHours };
+// Distance to port in nautical miles
+function calculateDistanceToPort(vesselData, port) {
+  const distanceKm = haversineDistance(
+    vesselData.latitude,
+    vesselData.longitude,
+    port.latitude,
+    port.longitude
+  );
+  return distanceKm / 1.852; // km → nautical miles
+}
+
+module.exports = { calculateEtaHours, calculateDistanceToPort };

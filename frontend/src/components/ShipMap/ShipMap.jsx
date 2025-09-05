@@ -15,10 +15,9 @@ const ShipMap = React.memo(function ShipMap({
   shipName,
   COG,
   heading,
-  ports = [],
-  zoom = 10, // default zoom passed in
-  showShip = true,
-  showPorts = true,
+  destinationPort = null,
+  hasValidLocation = false,
+  zoom = 6,
 }) {
   const lat = latitude == null ? null : Number(latitude);
   const lng = longitude == null ? null : Number(longitude);
@@ -26,27 +25,18 @@ const ShipMap = React.memo(function ShipMap({
   const rotation = normalizeRotation(rotationRaw, ICON_ROTATION_OFFSET);
 
   // ✅ Always call hooks at the top
-  const shipIcon = useMemo(() => createShipIcon(), []);
+  const shipIcon = useMemo(() => createShipIcon(rotation), [rotation]);
   const portIcon = useMemo(() => createPortDivIcon(), []);
-
-  // Adjust zoom: if showing a ship, zoom out a bit
-  const mapZoom = useMemo(() => {
-    if (showShip && isValidCoordinate(lat) && isValidCoordinate(lng)) {
-      return 6; // 👈 Less zoomed in for ship
-    }
-    return zoom; // fallback to default zoom
-  }, [showShip, lat, lng, zoom]);
 
   // Center map
   const center = useMemo(() => {
-    if (showShip && isValidCoordinate(lat) && isValidCoordinate(lng))
+    if (hasValidLocation && isValidCoordinate(lat) && isValidCoordinate(lng))
       return [lat, lng];
-    if (showPorts && ports.length > 0) return [ports[0].lat, ports[0].lng];
+    if (destinationPort) return [destinationPort.lat, destinationPort.lng];
     return [51.0, 4.0]; // fallback
-  }, [lat, lng, ports, showShip, showPorts]);
+  }, [lat, lng, destinationPort, hasValidLocation]);
 
-  const invalidShipLocation =
-    showShip && (!isValidCoordinate(lat) || !isValidCoordinate(lng));
+  const invalidShipLocation = hasValidLocation && (!isValidCoordinate(lat) || !isValidCoordinate(lng));
 
   return (
     <>
@@ -58,9 +48,9 @@ const ShipMap = React.memo(function ShipMap({
 
       <MapContainer
         center={center}
-        zoom={mapZoom}
+        zoom={zoom}
         scrollWheelZoom
-        className="map-container h-[400px] w-full"
+        className="map-container h-[500px] w-full"
       >
         <TileLayer
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -68,7 +58,8 @@ const ShipMap = React.memo(function ShipMap({
           minZoom={3}
         />
 
-        {showShip && !invalidShipLocation && (
+        {/* Ship Marker */}
+        {hasValidLocation && !invalidShipLocation && (
           <>
             <AutoFollow lat={lat} lng={lng} enabled />
             <Marker position={[lat, lng]} icon={shipIcon}>
@@ -76,22 +67,23 @@ const ShipMap = React.memo(function ShipMap({
                 <strong>{shipName ?? "Ship"}</strong>
                 <br />
                 Heading: {rotationRaw}°<br />
-                COG: {COG ?? "—"}
+                COG: {COG ?? "—"}<br />
+                {destinationPort && `Destination: ${destinationPort.name}`}
               </Popup>
             </Marker>
           </>
         )}
 
-        {showPorts &&
-          ports.map((port, i) => (
-            <Marker key={i} position={[port.lat, port.lng]} icon={portIcon}>
-              <Popup>
-                <strong>⚓ {port.name}</strong>
-                <br />
-                Lat: {port.lat}, Lng: {port.lng}
-              </Popup>
-            </Marker>
-          ))}
+        {/* Destination Port Marker */}
+        {destinationPort && (
+          <Marker position={[destinationPort.lat, destinationPort.lng]} icon={portIcon}>
+            <Popup>
+              <strong>⚓ Destination: {destinationPort.name}</strong>
+              <br />
+              Lat: {destinationPort.lat}, Lng: {destinationPort.lng}
+            </Popup>
+          </Marker>
+        )}
       </MapContainer>
     </>
   );

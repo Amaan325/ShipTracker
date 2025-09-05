@@ -25,6 +25,17 @@ const ShipDetails = () => {
     [vessel, aisData]
   );
 
+  // Find destination port
+  const destinationPort = useMemo(() => {
+    if (!displayData?.port?.arrival_port_name || !ports || ports.length === 0) 
+      return null;
+    
+    return ports.find(port => 
+      port.name.toLowerCase().includes(displayData.port.arrival_port_name.toLowerCase()) ||
+      displayData.port.arrival_port_name.toLowerCase().includes(port.name.toLowerCase())
+    );
+  }, [displayData, ports]);
+
   // Build details table entries
   const entries = useMemo(() => {
     if (!displayData) return [];
@@ -65,41 +76,19 @@ const ShipDetails = () => {
         {loading && <p className="text-gray-500 mb-4">Loading live AIS data...</p>}
         {error && <p className="text-red-500 mb-4">{error}</p>}
 
-        {/* Map Section */}
-        <div className="grid md:grid-cols-2 gap-6 mb-6">
-          {/* Ship Location */}
-          <div>
-            <h3 className="text-lg font-bold mb-2">Ship Location</h3>
-            {hasValidLocation ? (
-              <ShipMap
-                latitude={displayData.LATITUDE}
-                longitude={displayData.LONGITUDE}
-                shipName={displayData.NAME ?? displayData.name}
-                COG={displayData.COG}
-                heading={displayData.HEADING}
-                showShip={true}
-                showPorts={false}
-                zoom={10}
-              />
-            ) : (
-              <p className="text-gray-500">No live AIS data for this vessel.</p>
-            )}
-          </div>
-
-          {/* Ports Map */}
-          <div>
-            <h3 className="text-lg font-bold mb-2">Ports</h3>
-            {ports && ports.length > 0 ? (
-              <ShipMap
-                ports={ports}
-                showShip={false}
-                showPorts={true}
-                zoom={6}
-              />
-            ) : (
-              <p className="text-gray-500">No port data available.</p>
-            )}
-          </div>
+        {/* Single Map Section */}
+        <div className="mb-6">
+          <h3 className="text-lg font-bold mb-2">Ship Location & Destination</h3>
+          <ShipMap
+            latitude={displayData.LATITUDE}
+            longitude={displayData.LONGITUDE}
+            shipName={displayData.NAME ?? displayData.name}
+            COG={displayData.COG}
+            heading={displayData.HEADING}
+            destinationPort={destinationPort}
+            hasValidLocation={hasValidLocation}
+            zoom={hasValidLocation ? 9 : 4}
+          />
         </div>
 
         {/* Details Table */}

@@ -1,189 +1,197 @@
-const Vessel = require("../models/vesselModel");
-const { fetchAISDataForBatch } = require("./aisService");
+// src/services/vesselService.js
+const Vessel = require("../models/vesselModel")
+const { fetchAISDataForBatch } = require("./aisService")
 const {
   getNextBatch,
   requeueBatch,
   initVesselQueue,
   removeFailedBatch,
-} = require("./vesselQueue");
+} = require("./vesselQueue")
 
-const { normalizePhoneNumber, formatEtaHours } = require("../utils/formatters");
-const { isDestinationMatch } = require("../utils/matchers");
+const { normalizePhoneNumber, formatEtaHours } = require("../utils/formatters")
+const { isDestinationMatch } = require("../utils/matchers")
 
 const {
   computeEta,
   shouldMarkAsArrived,
   calculateDistanceToPort,
-  isEtaCalculationReliable,
-} = require("./etaService");
+} = require("./etaService")
 
-const {
-  sendNotificationWithRetry,
-  markAllPriorNotifications,
-} = require("./notificationService");
+const { checkAndQueueNotification } = require("./notificationService")
+const { enqueueMessage } = require("./messageQueue")
 
-const { NOTIFICATION_THRESHOLDS } = require("../../config/notificationConfig");
-
-const BATCH_SIZE = 50;
-const MAX_RETRIES = 5;
+const BATCH_SIZE = 50
+const MAX_RETRIES = 5
 
 /**
- * Fetch AIS records with retries
+ * Fetch AIS records with retries and detailed logging
  */
 async function fetchAISRecords(batchMMSIs) {
-  let records = [];
   for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
-    records = await fetchAISDataForBatch(batchMMSIs);
-    if (records.length) {
-      console.log(`✅ [AIS] Fetched ${records.length} records (attempt ${attempt})`);
-      break;
+    try {
+      console.log(
+        `🌊 [AIS] Fetching batch: ${batchMMSIs.join(", ")} (Attempt ${attempt})`
+      )
+      const records = await fetchAISDataForBatch(batchMMSIs)
+
+      if (records && records.length > 0) {
+        console.log(`✅ [AIS] Successfully fetched ${records.length} records`)
+        return records
+      }
+
+      const delay = Math.min(1000 * 2 ** attempt, 30000)
+      console.warn(`⚠️ [AIS] No records returned, retrying in ${delay / 1000}s`)
+      await new Promise((r) => setTimeout(r, delay))
+    } catch (err) {
+      console.error(`❌ [AIS] Fetch error: ${err.message}`)
+      if (err.message.includes("Too frequent requests")) {
+        console.warn("⏳ [AIS] Rate limited, waiting 60s before next attempt")
+        await new Promise((r) => setTimeout(r, 60000))
+      }
     }
-    const delay = Math.min(1000 * 2 ** attempt, 30000);
-    console.warn(`⚠️ [AIS] Fetch failed (attempt ${attempt}). Retrying in ${delay / 1000}s...`);
-    await new Promise((r) => setTimeout(r, delay));
   }
-  return records;
+
+  console.error("❌ [AIS] Max retries reached, returning empty array")
+  return []
 }
 
 /**
- * Send ETA threshold notifications if any
- */
-async function handleEtaThresholdNotifications(vessel, etaHours, sog, distanceToPort) {
-  if (!isEtaCalculationReliable(sog, distanceToPort)) return;
-
-  const nextThreshold = NOTIFICATION_THRESHOLDS.filter(
-    (t) => etaHours <= t.threshold && !vessel[t.key]
-  )
-    .sort((a, b) => a.threshold - b.threshold)
-    .shift();
-
-  if (nextThreshold) {
-    const phone = normalizePhoneNumber(vessel.engineer?.phone_number);
-    if (!phone) return;
-
-    console.log(`📩 [Vessel:${vessel.name}] Sending ${nextThreshold.threshold}H message`);
-    const success = await sendNotificationWithRetry(phone, nextThreshold.message(vessel), vessel.name);
-
-    if (success) {
-      vessel[nextThreshold.key] = true;
-      markAllPriorNotifications(vessel, nextThreshold.key, NOTIFICATION_THRESHOLDS);
-    }
-  }
-}
-
-/**
- * Handle vessel arrival (Infinity or normal ETA)
+ * Queue vessel arrival notification (once only)
  */
 async function handleArrival(vessel, etaHours, sog, distanceToPort) {
-  if (!vessel.notified_arrival && (etaHours === Infinity || shouldMarkAsArrived(etaHours, sog, distanceToPort))) {
-    const phone = normalizePhoneNumber(vessel.engineer?.phone_number);
-    if (!phone) return;
+  if (vessel.notified_arrival) return false
 
-    console.log(`📩 [Vessel:${vessel.name}] Sending ARRIVAL message`);
-    const success = await sendNotificationWithRetry(
+  if (
+    etaHours === Infinity ||
+    shouldMarkAsArrived(etaHours, sog, distanceToPort)
+  ) {
+    const phone = normalizePhoneNumber(vessel.engineer?.phone_number)
+    if (!phone) {
+      console.warn(
+        `⚠️ [Vessel:${vessel.name}] No engineer phone number for arrival notification`
+      )
+      return false
+    }
+
+    console.log(`📩 [Vessel:${vessel.name}] Queuing ARRIVAL notification`)
+    enqueueMessage(
       phone,
       `✅ ${vessel.name} has arrived at ${vessel.port.arrival_port_name}`,
       vessel.name
-    );
+    )
 
-    if (success) {
-      vessel.notified_arrival = true;
-      vessel.status = "arrived";
-      NOTIFICATION_THRESHOLDS.forEach((t) => (vessel[t.key] = true));
+    vessel.notified_arrival = true
+    vessel.status = "arrived"
 
-      console.log(`🚢 [Vessel:${vessel.name}] Marked as ARRIVED`);
+    console.log(`🚢 [Vessel:${vessel.name}] Marked as ARRIVED`)
 
-      // Delete vessel after arrival
-      await Vessel.deleteOne({ _id: vessel._id });
-      console.log(`🗑️ [Vessel:${vessel.name}] Deleted from database`);
-      return true; // signal deletion
+    // Delete vessel from DB
+    try {
+      await Vessel.deleteOne({ _id: vessel._id })
+      console.log(`🗑️ [Vessel:${vessel.name}] Deleted from database`)
+    } catch (err) {
+      console.error(
+        `❌ [Vessel:${vessel.name}] Failed to delete: ${err.message}`
+      )
     }
+
+    return true
   }
-  return false;
+  return false
 }
 
 /**
- * Process a single vessel
+ * Process a single vessel with detailed logs
  */
 async function processVessel(vessel, latest) {
-  vessel.latitude = latest.LATITUDE;
-  vessel.longitude = latest.LONGITUDE;
-  vessel.destination = latest.DEST;
-  vessel.eta = latest.ETA;
-  vessel.lastUpdated = new Date();
+  vessel.latitude = latest.LATITUDE
+  vessel.longitude = latest.LONGITUDE
+  vessel.destination = latest.DEST
+  vessel.eta = latest.ETA
+  vessel.lastUpdated = new Date()
 
-  const sog = Number(latest.SOG || latest.sog || latest.SPEED || 0);
-  console.log(`🧭 [Vessel:${vessel.name}] Speed = ${sog} knots`);
+  const sog = Number(latest.SOG || latest.sog || latest.SPEED || 0)
+  console.log(`🧭 [Vessel:${vessel.name}] Speed = ${sog} knots`)
 
-  // Destination mismatch
   if (!isDestinationMatch(vessel.destination, vessel.port?.unlocode)) {
-    console.log(`⛔ [Vessel:${vessel.name}] Destination mismatch`);
-    await vessel.save();
-    return;
+    console.warn(`⛔ [Vessel:${vessel.name}] Destination mismatch`)
+    await vessel.save()
+    return
   }
 
-  const etaHours = computeEta(vessel, sog, vessel.port);
+  const etaHours = computeEta(vessel, sog, vessel.port)
   const distanceToPort = calculateDistanceToPort(
     { latitude: vessel.latitude, longitude: vessel.longitude },
     vessel.port
-  );
+  )
 
   console.log(
-    `⏱ [Vessel:${vessel.name}] Final ETA: ${formatEtaHours(etaHours)} | Distance: ${distanceToPort.toFixed(2)} nm | AIS ETA raw: ${vessel.eta}`
-  );
+    `⏱ [Vessel:${vessel.name}] ETA: ${formatEtaHours(
+      etaHours
+    )} | Distance: ${distanceToPort.toFixed(2)} nm | AIS ETA raw: ${vessel.eta}`
+  )
 
-  // Handle arrival
-  const deleted = await handleArrival(vessel, etaHours, sog, distanceToPort);
-  if (deleted) return;
+  const deleted = await handleArrival(vessel, etaHours, sog, distanceToPort)
+  if (deleted) return
 
-  // Handle ETA thresholds
-  await handleEtaThresholdNotifications(vessel, etaHours, sog, distanceToPort);
+  // ✅ Single entry point for threshold notifications
+  await checkAndQueueNotification(vessel, etaHours)
 
-  await vessel.save();
-  console.log(`💾 [Vessel:${vessel.name}] Saved successfully`);
+  try {
+    await vessel.save()
+    console.log(`💾 [Vessel:${vessel.name}] Saved successfully`)
+  } catch (err) {
+    console.error(`❌ [Vessel:${vessel.name}] Failed to save: ${err.message}`)
+  }
 }
 
 /**
- * Main update function
+ * Main AIS update function with batch logs
  */
 const updateVesselsQueue = async () => {
-  console.log("🚢 [Queue] Running update at", new Date().toISOString());
-  await initVesselQueue();
+  console.log("🚢 [Queue] Running AIS update at", new Date().toISOString())
+  await initVesselQueue()
 
-  const batchMMSIs = getNextBatch(BATCH_SIZE);
+  const batchMMSIs = getNextBatch(BATCH_SIZE)
   if (!batchMMSIs.length) {
-    console.log("ℹ️ No MMSIs in queue.");
-    return;
+    console.log("ℹ️ No MMSIs in queue.")
+    return
   }
 
-  const records = await fetchAISRecords(batchMMSIs);
+  const records = await fetchAISRecords(batchMMSIs)
   if (!records.length) {
-    console.error("❌ [AIS] Batch failed after max retries. Re-queueing.");
-    requeueBatch(batchMMSIs);
-    return;
+    console.error("❌ [AIS] Batch failed after max retries. Re-queueing.")
+    requeueBatch(batchMMSIs)
+    return
   }
 
-  removeFailedBatch(batchMMSIs);
+  removeFailedBatch(batchMMSIs)
 
   const vessels = await Vessel.find({ mmsi: { $in: batchMMSIs } })
     .populate("port")
-    .populate("engineer");
+    .populate("engineer")
 
-  console.log(`🌊 [Batch] Updating ${vessels.length} vessels`);
+  console.log(`🌊 [Batch] Updating ${vessels.length} vessels`)
 
   for (const vessel of vessels) {
     try {
-      const latest = records.find((r) => String(r.MMSI) === String(vessel.mmsi));
+      const latest = records.find(
+        (r) => String(r.MMSI) === String(vessel.mmsi)
+      )
       if (!latest) {
-        console.log(`⚠️ [Vessel:${vessel.name}] No AIS record found`);
-        continue;
+        console.warn(`⚠️ [Vessel:${vessel.name}] No AIS record found`)
+        continue
       }
 
-      await processVessel(vessel, latest);
+      await processVessel(vessel, latest)
     } catch (err) {
-      console.error(`❌ [Error:${vessel.name}]`, err.message);
+      console.error(
+        `❌ [Vessel:${vessel.name}] Processing failed: ${err.message}`
+      )
     }
   }
-};
 
-module.exports = { updateVesselsQueue };
+  console.log(`✅ [Queue] AIS update completed at ${new Date().toISOString()}`)
+}
+
+module.exports = { updateVesselsQueue }

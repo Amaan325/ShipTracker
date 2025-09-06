@@ -1,40 +1,73 @@
-// services/notificationService.js
-const { sendWhatsAppNotification } = require("../services/notify");
+// src/services/notificationService.js
+const { enqueueMessage, dequeueMessage, getQueueLength } = require("./messageQueue");
+const { NOTIFICATION_THRESHOLDS } = require("../../config/notificationConfig");
+const { normalizePhoneNumber } = require("../utils/formatters");
+const { sendWhatsAppNotification } = require("./notify");
+const { isConnected } = require("./whatsapp");
 
-/**
- * Send with retries. Assumes sendWhatsAppNotification throws on failure.
- */
-async function sendNotificationWithRetry(phone, message, vesselName, maxRetries = 3) {
-  for (let attempt = 1; attempt <= maxRetries; attempt++) {
-    try {
-      await sendWhatsAppNotification(phone, message);
-      console.log(`✅ [Notify:${vesselName}] Message sent (attempt ${attempt})`);
+function markHigherThresholds(vessel, index) {
+  for (let j = index + 1; j < NOTIFICATION_THRESHOLDS.length; j++) {
+    const higher = NOTIFICATION_THRESHOLDS[j];
+    if (!vessel[higher.key]) {
+      vessel[higher.key] = true;
+      console.log(
+        `✅ [Vessel:${vessel.name}] Auto-marked ${higher.threshold}h as notified`
+      );
+    }
+  }
+}
+
+async function checkAndQueueNotification(vessel, etaHours) {
+  for (let i = 0; i < NOTIFICATION_THRESHOLDS.length; i++) {
+    const t = NOTIFICATION_THRESHOLDS[i];
+    if (etaHours <= t.threshold) {
+      if (vessel[t.key]) return false;
+
+      const phone = normalizePhoneNumber(vessel.engineer?.phone_number);
+      if (!phone) return false;
+
+      markHigherThresholds(vessel, i);
+
+      vessel[t.key] = true;
+      await vessel.save();
+
+      const message = t.message(vessel);
+      enqueueMessage(phone, message, vessel.name);
+      console.log(`📩 Queued ${t.threshold}h notification for ${vessel.name}`);
       return true;
-    } catch (error) {
-      console.warn(`⚠️ [Notify:${vesselName}] Failed (attempt ${attempt}):`, error?.message ?? error);
-      if (attempt < maxRetries) {
-        await new Promise((res) => setTimeout(res, 1000 * attempt));
-      }
     }
   }
   return false;
 }
 
-/**
- * Mark all PRIOR notifications as true.
- * Prior = thresholds with a STRICTLY LARGER hour value than the sent one.
- * Example: thresholds = [48,24,12,...]
- * If we send 24h, mark 48h as already sent (since it's "earlier" in time).
- */
-function markAllPriorNotifications(vessel, currentKey, NOTIFICATION_THRESHOLDS) {
-  const current = NOTIFICATION_THRESHOLDS.find((t) => t.key === currentKey);
-  if (!current) return;
+// New: process queued messages
+async function processMessageQueue() {
+  if (!isConnected()) {
+    console.log("⚠️ [Notification Worker] WhatsApp not connected, skipping");
+    return;
+  }
 
-  NOTIFICATION_THRESHOLDS.forEach((t) => {
-    if (t.threshold > current.threshold) {
-      vessel[t.key] = true;
+  if (getQueueLength() === 0) {
+    console.log("📭 [Notification Worker] No messages in queue");
+    return;
+  }
+
+  const job = dequeueMessage();
+  if (!job) return;
+
+  const { to, message, vesselName, attempts = 0 } = job;
+  console.log(`🚀 Sending message to ${to}: "${message}"`);
+
+  try {
+    await sendWhatsAppNotification(to, message);
+    console.log(`✅ Message delivered to ${to}`);
+  } catch (err) {
+    console.error(`❌ Failed to send to ${to}: ${err.message}`);
+    if (attempts < 3) {
+      console.log(`🔁 Retrying message for ${to} (attempt ${attempts + 1})`);
+      enqueueMessage(to, message, vesselName); // requeue
     }
-  });
+  }
 }
 
-module.exports = { sendNotificationWithRetry, markAllPriorNotifications };
+module.exports = { checkAndQueueNotification, processMessageQueue };

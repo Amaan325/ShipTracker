@@ -6,7 +6,7 @@ const cookieParser = require("cookie-parser");
 const connectDB = require("./db/connectdb");
 
 // WhatsApp Service
-const { startWhatsApp, sendWhatsAppNotification } = require("./src/services/whatsapp");
+const { startWhatsApp, isConnected } = require("./src/services/whatsapp");
 
 // Routes
 const portRoutes = require("./src/routes/portRoutes");
@@ -28,15 +28,19 @@ connectDB().then(async () => {
   console.log("✅ Connected to MongoDB");
 
   // Start WhatsApp
+  console.log("📲 Initializing WhatsApp...");
   await startWhatsApp();
 
-  // 🔹 Test message after WhatsApp connection
-  // setTimeout(async () => {
-  //   await sendWhatsAppNotification("923455388774", "Hello! This is a test 🚀");
-  // }, 5000);
-
-  // Start Vessel Tracking Cron
-  startVesselTracking();
+  // Wait until WhatsApp is connected before starting cron
+  const checkInterval = setInterval(() => {
+    if (isConnected()) {
+      console.log("🚀 WhatsApp ready, starting vessel tracking...");
+      startVesselTracking();
+      clearInterval(checkInterval);
+    } else {
+      console.log("⏳ Waiting for WhatsApp to connect...");
+    }
+  }, 3000);
 });
 
 // Routes

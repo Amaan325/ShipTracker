@@ -1,20 +1,18 @@
+// cron/trackVessels.js
 const cron = require("node-cron");
-const { updateVesselsQueue } = require("../src/services/vesselService");
+const { startAISWorker } = require("../src/workers/aisWorker.js");
+const {
+  startNotificationWorker,
+} = require("../src/workers/notificationWorker");
 
-/**
- * Schedule the vessel tracking cron job.
- * Runs every minute to respect AISHub rate limits.
- */
-const startVesselTracking = () => {
-  cron.schedule("*/3 * * * *", async () => {
-    try {
-      await updateVesselsQueue();
-    } catch (err) {
-      console.error("🚨 Vessel tracking job failed:", err.message);
-    }
-  });
+function startVesselTracking() {
 
-  console.log("⏱ Vessel tracking cron started (every minute)");
-};
+  // AIS Worker: every 2 minutes
+  startAISWorker();
+
+  // Notification Worker: every 2 seconds
+  startNotificationWorker();
+
+}
 
 module.exports = { startVesselTracking };

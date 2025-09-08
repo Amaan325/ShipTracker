@@ -1,60 +1,76 @@
-import React, { useState } from "react";
-import axios from "axios";
+// src/pages/EngineerForm.jsx
+import React, { useState, useEffect, useCallback } from "react";
+import { FaUser } from "react-icons/fa";
+import { getEngineers, addEngineer } from "../services/api";
+import { useSnackbar } from "notistack";
+import AddEngineerForm from "../components/Engineer/AddEngineerForm";
+import EngineerTable from "../components/Engineer/EngineerTable";
 
 const EngineerForm = () => {
-  const [engineerName, setEngineerName] = useState("");
-  const [email, setEmail] = useState("");
-  const [phoneNumber, setPhoneNumber] = useState("");
+  const [engineers, setEngineers] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const { enqueueSnackbar } = useSnackbar();
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    try {
-      await axios.post("/api/engineers", { engineerName, email, phoneNumber });
-      alert("Engineer added successfully!");
-      setEngineerName("");
-      setEmail("");
-      setPhoneNumber("");
-    } catch (err) {
-      console.error(err);
-      alert("Error adding engineer");
-    }
-  };
+  // ✅ Fetch engineers
+  useEffect(() => {
+    const fetchEngineers = async () => {
+      try {
+        setLoading(true);
+        const res = await getEngineers();
+        setEngineers(res.data || []);
+      } catch (err) {
+        console.error("Error fetching engineers:", err);
+        enqueueSnackbar("Failed to fetch engineers ❌", { variant: "error" });
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchEngineers();
+  }, [enqueueSnackbar]);
+
+  // ✅ Add new engineer (memoized)
+  const handleAdd = useCallback(
+    async (form, resetForm, setFormLoading) => {
+      try {
+        setFormLoading(true);
+        const res = await addEngineer(form);
+        setEngineers((prev) => [...prev, res.data]);
+        resetForm();
+        enqueueSnackbar("Engineer added successfully ✅", { variant: "success" });
+      } catch (err) {
+        console.error("Error adding engineer:", err.response?.data || err.message);
+        enqueueSnackbar("Failed to add engineer ❌", { variant: "error" });
+      } finally {
+        setFormLoading(false);
+      }
+    },
+    [enqueueSnackbar]
+  );
 
   return (
-    <div className="max-w-lg mx-auto mt-12 p-6 bg-white shadow rounded">
-      <h2 className="text-2xl font-bold mb-6">Engineer Information</h2>
-      <form className="flex flex-col space-y-4" onSubmit={handleSubmit}>
-        <input
-          type="text"
-          placeholder="Engineer Name"
-          value={engineerName}
-          onChange={(e) => setEngineerName(e.target.value)}
-          className="border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-400"
-          required
-        />
-        <input
-          type="email"
-          placeholder="Email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          className="border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-400"
-          required
-        />
-        <input
-          type="tel"
-          placeholder="Phone Number"
-          value={phoneNumber}
-          onChange={(e) => setPhoneNumber(e.target.value)}
-          className="border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-400"
-          required
-        />
-        <button
-          type="submit"
-          className="bg-green-600 text-white py-2 rounded hover:bg-green-700 transition"
-        >
-          Submit
-        </button>
-      </form>
+    <div className="flex min-h-screen bg-gray-100">
+      <main className="flex-1 px-8 ">
+        {/* Header */}
+        <header className="flex items-center gap-3 mb-8">
+          <div className="w-11 h-11 bg-blue-600 rounded-2xl flex items-center justify-center text-white shadow">
+            <FaUser size={22} />
+          </div>
+          <div>
+            <h1 className="text-xl font-semibold text-gray-800">
+              Engineer Management
+            </h1>
+            <p className="text-gray-500 text-sm">
+              Add and manage marine engineers
+            </p>
+          </div>
+        </header>
+
+        {/* Add Engineer Form */}
+        <AddEngineerForm onAdd={handleAdd} />
+
+        {/* Engineer List */}
+        <EngineerTable engineers={engineers} loading={loading} />
+      </main>
     </div>
   );
 };

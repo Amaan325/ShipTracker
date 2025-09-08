@@ -4,24 +4,24 @@ import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { Provider } from "react-redux";
 import { store } from "./redux/store";
 
-import Navbar from "./components/Navbar";
 import AddVessel from "./pages/AddVessel";
 import EngineerForm from "./pages/EngineerForm";
 import ShipDetails from "./pages/ShipDetails";
+import Sidebar from "./components/Sidebar";
 
 const App = () => {
   return (
     <Provider store={store}>
       <Router>
-        <div className="min-h-screen bg-gray-100">
-          {/* Navbar */}
-          <Navbar />
+        <div className="flex min-h-screen bg-gray-100">
+          {/* Sidebar always visible */}
+          <Sidebar />
 
           {/* Page Content */}
-          <main className="p-6">
+          <main className="flex-1 p-6 overflow-auto">
             <Routes>
               <Route path="/" element={<AddVessel />} />
-              <Route path="/engineer" element={<EngineerForm />} />
+              <Route path="/engineers" element={<EngineerForm />} />
               <Route path="/ship-details" element={<ShipDetails />} />
             </Routes>
           </main>

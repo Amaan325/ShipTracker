@@ -9,6 +9,7 @@ export const getPorts = () => API.get("/ports/");
 
 // Engineers
 export const getEngineers = () => API.get("/engineers");
+export const addEngineer = (engineer) => API.post("/engineers", engineer);
 
 // Ships
 export const addVessel = (vessel) => API.post("/ships", vessel);

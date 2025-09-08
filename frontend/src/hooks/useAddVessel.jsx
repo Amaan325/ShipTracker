@@ -13,6 +13,7 @@ export const useAddVessel = () => {
   const dispatch = useDispatch();
   const isSubmittingRef = useRef(false);
 
+  // State
   const [vesselCodeQuery, setVesselCodeQuery] = useState("");
   const [selectedVessel, setSelectedVessel] = useState(null);
   const [mmsi, setMmsi] = useState("");
@@ -22,10 +23,10 @@ export const useAddVessel = () => {
   const [engineers, setEngineers] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  // Fetch ports & engineers
+  // Fetch ports & engineers once
   useEffect(() => {
     let mounted = true;
-    const fetchData = async () => {
+    (async () => {
       try {
         const [portsRes, engineersRes] = await Promise.all([
           getPorts(),
@@ -33,63 +34,44 @@ export const useAddVessel = () => {
         ]);
         if (!mounted) return;
         setPorts(
-          portsRes.data.map((p) => ({
-            value: p._id,
-            label: p.arrival_port_name,
-          }))
+          portsRes.data.map((p) => ({ value: p._id, label: p.arrival_port_name }))
         );
         setEngineers(
-          engineersRes.data.map((e) => ({
-            value: e._id,
-            label: e.engineer_name,
-          }))
+          engineersRes.data.map((e) => ({ value: e._id, label: e.engineer_name }))
         );
       } catch {
-        enqueueSnackbar("Failed to load ports or engineers", {
-          variant: "error",
-        });
+        enqueueSnackbar("Failed to load ports or engineers", { variant: "error" });
       }
-    };
-    fetchData();
+    })();
     return () => {
       mounted = false;
     };
   }, [enqueueSnackbar]);
 
   // Handlers
-  const handleVesselInputChange = useCallback((e) => {
+  const onVesselInputChange = useCallback((e) => {
     setVesselCodeQuery(e.target.value);
     setSelectedVessel(null);
     setMmsi("");
   }, []);
 
-  const handleVesselSelect = useCallback((v) => {
+  const onVesselSelect = useCallback((v) => {
     setSelectedVessel(v);
     setVesselCodeQuery(v.name);
     setMmsi(v.mmsi);
   }, []);
 
-  const handlePortChange = useCallback(
-    (e) => setSelectedPort(e.target.value),
-    []
-  );
-  const handleEngineerChange = useCallback(
-    (e) => setSelectedEngineer(e.target.value),
-    []
-  );
+  const onChange = useCallback((setter) => (e) => setter(e.target.value), []);
 
-  const handleSubmit = useCallback(
+  const onSubmit = useCallback(
     async (e) => {
       e.preventDefault();
       if (isSubmittingRef.current) return;
 
       if (!selectedVessel && !vesselCodeQuery) {
-        enqueueSnackbar(
-          "Please enter a vessel name or select an existing one",
-          {
-            variant: "warning",
-          }
-        );
+        enqueueSnackbar("Please enter a vessel name or select an existing one", {
+          variant: "warning",
+        });
         return;
       }
 
@@ -125,18 +107,10 @@ export const useAddVessel = () => {
         setLoading(false);
       }
     },
-    [
-      selectedVessel,
-      vesselCodeQuery,
-      mmsi,
-      selectedPort,
-      selectedEngineer,
-      dispatch,
-      enqueueSnackbar,
-      navigate,
-    ]
+    [selectedVessel, vesselCodeQuery, mmsi, selectedPort, selectedEngineer, dispatch, enqueueSnackbar, navigate]
   );
 
+  // Derived values
   const submitText = useMemo(
     () => (loading ? "Processing..." : "Add Vessel"),
     [loading]
@@ -152,11 +126,11 @@ export const useAddVessel = () => {
     engineers,
     loading,
     submitText,
-    handleVesselInputChange,
-    handleVesselSelect,
-    handlePortChange,
-    handleEngineerChange,
-    handleSubmit,
+    onVesselInputChange,
+    onVesselSelect,
+    onPortChange: onChange(setSelectedPort),
+    onEngineerChange: onChange(setSelectedEngineer),
+    onSubmit,
     setMmsi,
   };
 };

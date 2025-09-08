@@ -1,47 +1,32 @@
-// src/pages/AddVessel/AddVessel.jsx
 import React from "react";
 import { useAddVessel } from "../hooks/useAddVessel";
 import AddVesselForm from "../components/AddVessel/AddVesselForm";
+import { LiaShipSolid } from "react-icons/lia";
 
 const AddVessel = () => {
-  const {
-    vesselCodeQuery,
-    selectedVessel,
-    mmsi,
-    selectedPort,
-    selectedEngineer,
-    ports,
-    engineers,
-    loading,
-    submitText,
-    handleVesselInputChange,
-    handleVesselSelect,
-    handlePortChange,
-    handleEngineerChange,
-    handleSubmit,
-    setMmsi,
-  } = useAddVessel();
+  const addVesselHook = useAddVessel();
 
   return (
-    <div className="max-w-lg mx-auto mt-12 p-8 bg-white shadow-lg rounded-2xl">
-      <h2 className="text-3xl font-bold mb-6 text-center text-gray-800">Add Vessel</h2>
-      <AddVesselForm
-        vesselCodeQuery={vesselCodeQuery}
-        selectedVessel={selectedVessel}
-        mmsi={mmsi}
-        selectedPort={selectedPort}
-        selectedEngineer={selectedEngineer}
-        ports={ports}
-        engineers={engineers}
-        submitText={submitText}
-        loading={loading}
-        onVesselInputChange={handleVesselInputChange}
-        onVesselSelect={handleVesselSelect}
-        onPortChange={handlePortChange}
-        onEngineerChange={handleEngineerChange}
-        onSubmit={handleSubmit}
-        setMmsi={setMmsi}
-      />
+    <div className="flex min-h-screen bg-gray-100">
+      <main className="flex-1 px-8">
+        <div className="max-w-3xl mx-auto">
+          {/* Header */}
+          <div className="flex items-center gap-3 mb-8 ml-12">
+            <div className="w-10 h-10 bg-blue-600 rounded-2xl flex items-center justify-center text-white">
+              <LiaShipSolid size={28} />
+            </div>
+            <div>
+              <h1 className="text-xl font-semibold text-gray-800">Add New Ship</h1>
+              <p className="text-gray-500 text-sm">Register a new vessel in the tracking system</p>
+            </div>
+          </div>
+
+          {/* Form */}
+          <div className="bg-gray-100 px-6 rounded-2xl -mt-9">
+            <AddVesselForm {...addVesselHook} />
+          </div>
+        </div>
+      </main>
     </div>
   );
 };

@@ -1,63 +1,101 @@
-// VesselAutocomplete.js
-import React, { useState, useEffect, useCallback } from "react";
-import InputField from "./InputField";
-import { searchShips } from "../../services/api"; // local DB search only
+import React, { useState, useEffect, useCallback, forwardRef, useMemo } from "react";
+import InputField from "../common/InputField";
+import { searchShips } from "../../services/api";
 import debounce from "lodash.debounce";
 
-const VesselAutocomplete = ({ value, onChange, onSelect, selectedVessel }) => {
-  const [suggestions, setSuggestions] = useState([]);
+const VesselAutocomplete = forwardRef(
+  (
+    {
+      label,
+      id,
+      value,
+      onChange,
+      onSelect,
+      selectedVessel,
+      required = false,
+      error = "",
+      placeholder = "Enter Ship Name",
+      className = "",
+      ...rest
+    },
+    ref
+  ) => {
+    const [suggestions, setSuggestions] = useState([]);
 
-  // Debounced API call
-  const fetchVessels = useCallback(
-    debounce(async (query) => {
-      if (!query || selectedVessel?.name === query) {
-        setSuggestions([]);
-        return;
-      }
+    const fetchVessels = useCallback(
+      debounce(async (query) => {
+        if (!query || selectedVessel?.name === query) return setSuggestions([]);
+        try {
+          const { data } = await searchShips(query);
+          setSuggestions(data || []);
+        } catch (err) {
+          console.error("Vessel search error:", err);
+        }
+      }, 300),
+      [selectedVessel]
+    );
 
-      try {
-        const res = await searchShips(query); // local DB search
-        setSuggestions(res.data);
-      } catch (err) {
-        console.error("Vessel search error:", err);
-      }
-    }, 300), // 300ms debounce
-    [selectedVessel]
-  );
+    useEffect(() => {
+      fetchVessels(value);
+      return () => fetchVessels.cancel();
+    }, [value, fetchVessels]);
 
-  useEffect(() => {
-    fetchVessels(value);
-    return () => fetchVessels.cancel(); // cleanup
-  }, [value, fetchVessels]);
+    // Generate fallback id for accessibility
+    const inputId = useMemo(
+      () => id || `vessel-${Math.random().toString(36).slice(2, 9)}`,
+      [id]
+    );
 
-  const handleSelect = (vessel) => {
-    onSelect(vessel);   // parent updates value & MMSI
-    setSuggestions([]); // clear dropdown
-  };
+    return (
+      <div className="w-full relative">
+        {label && (
+          <label
+            htmlFor={inputId}
+            className="block text-xs font-medium text-gray-700 mb-1"
+          >
+            {label}
+          </label>
+        )}
 
-  return (
-    <div className="relative">
-      <InputField
-        placeholder="Enter Vessel Code"
-        value={value}
-        onChange={onChange}
-        required
-      />
-      {suggestions.length > 0 && (
-        <ul className="absolute bg-white border w-full mt-1 max-h-48 overflow-y-auto z-10 shadow rounded">
-          {suggestions.map((v) => (
-            <li
-              key={v.mmsi}
-              className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
-              onClick={() => handleSelect(v)}
-            >
-              {v.name} ({v.mmsi})
-            </li>
-          ))}
-        </ul>
-      )}
-    </div>
-  );
-};
+        <InputField
+          id={inputId}
+          ref={ref}
+          placeholder={placeholder}
+          value={value}
+          onChange={onChange}
+          required={required}
+          aria-invalid={!!error}
+          aria-describedby={error ? `${inputId}-error` : undefined}
+          className={className}
+          {...rest}
+        />
 
-export default VesselAutocomplete;
+        {suggestions.length > 0 && (
+          <ul className="absolute bg-white border border-gray-200 w-full mt-1 max-h-48 overflow-y-auto z-10 shadow-lg rounded-lg">
+            {suggestions.map((v) => (
+              <li
+                key={v.mmsi}
+                className="px-4 py-2 hover:bg-gray-100 cursor-pointer text-sm"
+                onClick={() => {
+                  onSelect(v);
+                  setSuggestions([]);
+                }}
+              >
+                {v.name} ({v.mmsi})
+              </li>
+            ))}
+          </ul>
+        )}
+
+        {error && (
+          <p id={`${inputId}-error`} className="mt-1 text-xs text-red-600">
+            {error}
+          </p>
+        )}
+      </div>
+    );
+  }
+);
+
+VesselAutocomplete.displayName = "VesselAutocomplete";
+export default React.memo(VesselAutocomplete);

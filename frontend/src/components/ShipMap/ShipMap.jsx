@@ -36,7 +36,8 @@ const ShipMap = React.memo(function ShipMap({
     return [51.0, 4.0]; // fallback
   }, [lat, lng, destinationPort, hasValidLocation]);
 
-  const invalidShipLocation = hasValidLocation && (!isValidCoordinate(lat) || !isValidCoordinate(lng));
+  const invalidShipLocation =
+    hasValidLocation && (!isValidCoordinate(lat) || !isValidCoordinate(lng));
 
   return (
     <>
@@ -50,7 +51,7 @@ const ShipMap = React.memo(function ShipMap({
         center={center}
         zoom={zoom}
         scrollWheelZoom
-        className="map-container h-[500px] w-full"
+        className="map-container h-[500px] w-full rounded-2xl overflow-hidden"
       >
         <TileLayer
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -67,7 +68,8 @@ const ShipMap = React.memo(function ShipMap({
                 <strong>{shipName ?? "Ship"}</strong>
                 <br />
                 Heading: {rotationRaw}°<br />
-                COG: {COG ?? "—"}<br />
+                COG: {COG ?? "—"}
+                <br />
                 {destinationPort && `Destination: ${destinationPort.name}`}
               </Popup>
             </Marker>
@@ -76,7 +78,10 @@ const ShipMap = React.memo(function ShipMap({
 
         {/* Destination Port Marker */}
         {destinationPort && (
-          <Marker position={[destinationPort.lat, destinationPort.lng]} icon={portIcon}>
+          <Marker
+            position={[destinationPort.lat, destinationPort.lng]}
+            icon={portIcon}
+          >
             <Popup>
               <strong>⚓ Destination: {destinationPort.name}</strong>
               <br />

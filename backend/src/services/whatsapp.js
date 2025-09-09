@@ -1,5 +1,6 @@
 const P = require("pino");
-const qrcode = require("qrcode-terminal");
+const QRCode = require("qrcode");
+const path = require("path");
 
 let sock;
 let baileys; // cache module
@@ -17,12 +18,21 @@ async function startWhatsApp() {
     logger: P({ level: "silent" })
   });
 
-  sock.ev.on("connection.update", (update) => {
+  sock.ev.on("connection.update", async (update) => {
     const { connection, lastDisconnect, qr } = update;
 
     if (qr) {
-      console.log("📲 Scan the QR code below to connect WhatsApp:");
-      qrcode.generate(qr, { small: true });
+      console.log("📲 QR code received, generating image for client...");
+
+      // Save QR code as PNG file
+      const qrFilePath = path.resolve(__dirname, "whatsapp-qr.png");
+      await QRCode.toFile(qrFilePath, qr);
+      console.log(`✅ QR code saved as ${qrFilePath}`);
+
+      // Generate base64 Data URL for web display
+      const dataUrl = await QRCode.toDataURL(qr);
+      console.log("📡 Send this data URL to client to scan:");
+      console.log(dataUrl);
     }
 
     if (connection === "close") {

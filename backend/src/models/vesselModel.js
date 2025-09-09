@@ -25,6 +25,8 @@ const vesselSchema = new mongoose.Schema(
     notified_24h: { type: Boolean, default: false },
     notified_12h: { type: Boolean, default: false },
     notified_6h: { type: Boolean, default: false },
+    notified_zone_entry: { type: Boolean, default: false },
+
     notified_3h: { type: Boolean, default: false },
     notified_1h: { type: Boolean, default: false },
     notified_30m: { type: Boolean, default: false },

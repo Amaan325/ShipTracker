@@ -8,6 +8,15 @@ const NOTIFICATION_THRESHOLDS = [
   { threshold: 48,  key: 'notified_48h', message: (v) => `⏳ ${v.name} is ~48 hours away from ${v.port.arrival_port_name}` },
 ];
 
+// 🛳️ Distance-based threshold (30 km ≈ 16.2 nautical miles)
+// 🛳️ Distance-based threshold (37 km ≈ 20 nautical miles)
+
+const ZONE_RADIUS_NM = 25;
+const ZONE_ENTRY_NOTIFICATION = {
+  key: 'notified_zone_entry',
+  radiusNm: ZONE_RADIUS_NM,
+  message: (v) => `🚢 ${v.name} has entered the port zone (${v.port.arrival_port_name})`
+};
 
 const ARRIVAL_THRESHOLD_HOURS = 0.1; // 6 minutes
 const ARRIVAL_SPEED_THRESHOLD = 0.5; // 0.5 knots
@@ -15,7 +24,8 @@ const MIN_SPEED_FOR_ETA_CALC = 0.1;
 
 module.exports = {
   NOTIFICATION_THRESHOLDS,
+  ZONE_ENTRY_NOTIFICATION,   // ✅ new
   ARRIVAL_THRESHOLD_HOURS,
   ARRIVAL_SPEED_THRESHOLD,
-  MIN_SPEED_FOR_ETA_CALC
+  MIN_SPEED_FOR_ETA_CALC,
 };

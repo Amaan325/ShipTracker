@@ -1,4 +1,3 @@
-// src/App.jsx
 import React from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { Provider } from "react-redux";
@@ -8,6 +7,7 @@ import AddVessel from "./pages/AddVessel";
 import EngineerForm from "./pages/EngineerForm";
 import ShipDetails from "./pages/ShipDetails";
 import Sidebar from "./components/Sidebar";
+import Monitoring from "./pages/Monitoring"; // ✅ Imported Monitoring page
 
 const App = () => {
   return (
@@ -23,6 +23,8 @@ const App = () => {
               <Route path="/" element={<AddVessel />} />
               <Route path="/engineers" element={<EngineerForm />} />
               <Route path="/ship-details" element={<ShipDetails />} />
+              <Route path="/monitoring" element={<Monitoring />} />
+
             </Routes>
           </main>
         </div>

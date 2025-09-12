@@ -57,21 +57,24 @@ function computeEta(vessel, sog, port) {
       const etaDate = new Date(Date.UTC(year, month - 1, day, hour, minute));
       const hours = (etaDate.getTime() - Date.now()) / (1000 * 60 * 60);
 
+      const vesselTag = vessel?.name ? `[Vessel:${vessel.name}]` : "[Vessel]";
       console.log(
-        `📡 [Vessel:${vessel.name}] AIS ETA raw: ${rawEta} | UTC ETA hours: ${hours.toFixed(2)}h`
+        `${vesselTag} 📡 AIS ETA raw: ${rawEta} | UTC ETA hours: ${hours.toFixed(
+          2
+        )}h`
       );
 
       if (hours > 0 && hours < 1000) {
         return hours;
       }
     } catch (err) {
-      console.warn(`⚠️ [Vessel:${vessel.name}] Failed to parse AIS ETA: ${rawEta}`);
+      const vesselTag = vessel?.name ? `[Vessel:${vessel.name}]` : "[Vessel]";
+      console.warn(`${vesselTag} ⚠️ Failed to parse AIS ETA: ${rawEta}`);
     }
   }
 
   return Infinity; // No valid AIS ETA
 }
-
 
 module.exports = {
   shouldMarkAsArrived,

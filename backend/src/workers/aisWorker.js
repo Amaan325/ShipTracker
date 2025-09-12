@@ -6,7 +6,7 @@ const startAISWorker = () => {
   console.log("🚀 TrackVessels workers starting...");
 
   // Run every 2 minutes
-  cron.schedule("*/2 * * * *", async () => {
+  cron.schedule("*/3 * * * *", async () => {
     console.log(`🚢 [Queue] Running AIS update at ${new Date().toISOString()}`);
     try {
       await updateVesselsQueue();

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useSnackbar } from "notistack";
 import { getVesselDetails, saveOrCheckVessel } from "../services/api";
@@ -13,8 +13,12 @@ export const useAisData = (mmsi) => {
   const { enqueueSnackbar } = useSnackbar();
   const currentVessel = useSelector((state) => state.vessel.currentVessel);
 
+  // Prevent duplicate calls in Strict Mode
+  const hasFetched = useRef(false);
+
   useEffect(() => {
-    if (!mmsi) return;
+    if (!mmsi || hasFetched.current) return;
+    hasFetched.current = true;
 
     const fetchData = async () => {
       setLoading(true);
@@ -23,40 +27,41 @@ export const useAisData = (mmsi) => {
       try {
         const res = await getVesselDetails(mmsi);
 
+        let vesselData = null;
         if (!res.data.success) {
           if (res.data.status === "too_frequent") {
-            enqueueSnackbar("Too many AIS Hub requests, using cached data.", {
+            enqueueSnackbar("Too many requests. Please try again in 1 minute.", {
               variant: "warning",
             });
-            return;
-          }
-
-          if (res.data.status === "no_data") {
+            vesselData = currentVessel ? { ...currentVessel } : { mmsi };
+          } else if (res.data.status === "no_data") {
             enqueueSnackbar("No AIS data available for this vessel.", {
               variant: "info",
             });
             return;
+          } else {
+            enqueueSnackbar(res.data.message || "Unknown AIS Hub error", {
+              variant: "error",
+            });
+            return;
           }
-
-          enqueueSnackbar(res.data.message || "Unknown AIS Hub error", {
-            variant: "error",
-          });
-          return;
-        }
-        const mergedVessel = { ...currentVessel, ...res.data.vessel };
-        setData(mergedVessel);
-        console.log("Merged Vessel", mergedVessel)
-
-        if (JSON.stringify(currentVessel) !== JSON.stringify(mergedVessel)) {
-          dispatch(setCurrentVessel(mergedVessel));
+        } else {
+          vesselData = { ...currentVessel, ...res.data.vessel };
         }
 
-        const saveRes = await saveOrCheckVessel(mergedVessel);
+        if (!vesselData) return;
+
+        setData(vesselData);
+
+        if (JSON.stringify(currentVessel) !== JSON.stringify(vesselData)) {
+          dispatch(setCurrentVessel(vesselData));
+        }
+
+        const saveRes = await saveOrCheckVessel(vesselData);
         console.log("💾 Save/Check Vessel Response:", saveRes.data);
 
         if (saveRes?.data?.conflict) {
-          console.log("🚨 Vessel conflict detected!");
-          setConflict(saveRes.data); // now conflict = { conflict: true, vessel: { ... } }
+          setConflict(saveRes.data);
         }
       } catch (err) {
         console.error("AIS Hub API error:", err);
@@ -67,7 +72,7 @@ export const useAisData = (mmsi) => {
     };
 
     fetchData();
-  }, [mmsi, currentVessel, dispatch, enqueueSnackbar]);
+  }, [mmsi, dispatch, enqueueSnackbar]); // ❌ removed currentVessel
 
   return { data: data || currentVessel, loading, conflict };
 };

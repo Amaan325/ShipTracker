@@ -38,47 +38,25 @@ const normalizeVesselData = (data) => ({
 });
 
 /**
- * Save or update vessel
+ * Save or update vessel with conflict logic
  */
 const saveOrCheckVessel = async (req, res) => {
   try {
     console.log("📥 Incoming Vessel Data (Raw):", req.body);
-
     const vesselData = normalizeVesselData(req.body);
 
-    // MMSI required
     if (!vesselData.mmsi) {
       console.log("❌ Missing MMSI. Cannot save vessel.");
-      return res
-        .status(400)
-        .json({ success: false, message: "MMSI is required" });
+      return res.status(400).json({ success: false, message: "MMSI is required" });
     }
 
-    // ✅ Destination vs Port UNLOCODE check
-    if (
-      vesselData.destination &&
-      vesselData.port?.unlocode &&
-      !vesselData.destination.trim().includes(vesselData.port.unlocode)
-    ) {
-      console.log(
-        `❌ Destination mismatch: AIS dest="${vesselData.destination.trim()}" vs Port UNLOCODE="${vesselData.port.unlocode}"`
-      );
-      return res.status(400).json({
-        success: false,
-        message: `Destination mismatch: Vessel destination (${vesselData.destination.trim()}) does not match Port UNLOCODE (${vesselData.port.unlocode}).`,
-      });
-    }
-
-    // Find vessel by MMSI
     const existingVessel = await Vessel.findOne({ mmsi: vesselData.mmsi });
     console.log("🔍 Existing Vessel Found:", existingVessel);
 
     if (existingVessel) {
       const sameDetails =
-        JSON.stringify(existingVessel.port) ===
-          JSON.stringify(vesselData.port) &&
-        JSON.stringify(existingVessel.engineer) ===
-          JSON.stringify(vesselData.engineer);
+        JSON.stringify(existingVessel.port) === JSON.stringify(vesselData.port) &&
+        JSON.stringify(existingVessel.engineer) === JSON.stringify(vesselData.engineer);
 
       if (sameDetails) {
         console.log("ℹ️ Vessel already exists with the SAME engineer & port.");
@@ -90,14 +68,11 @@ const saveOrCheckVessel = async (req, res) => {
       }
 
       if (existingVessel.isActive) {
-        console.log(
-          "⚠️ Vessel exists but is ACTIVE with different engineer/port."
-        );
+        console.log("⚠️ Vessel exists but is ACTIVE with different engineer/port.");
         return res.json({
           success: false,
           conflict: true,
-          message:
-            "Vessel exists but has different engineer/port. Please deactivate first.",
+          message: "Vessel exists but has different engineer/port. Please deactivate first.",
           vessel: existingVessel,
         });
       }
@@ -118,19 +93,23 @@ const saveOrCheckVessel = async (req, res) => {
     }
 
     console.log("🆕 No existing vessel. Creating new one...");
-    const newVessel = await Vessel.create(vesselData);
-    console.log("✅ Vessel Created:", newVessel);
+    const upsertedVessel = await Vessel.findOneAndUpdate(
+      { mmsi: vesselData.mmsi },
+      { $setOnInsert: vesselData },
+      { new: true, upsert: true }
+    );
+    console.log("✅ Vessel Created:", upsertedVessel);
 
     return res.json({
       success: true,
       message: "Vessel saved successfully.",
-      vessel: newVessel,
+      vessel: upsertedVessel,
     });
   } catch (err) {
     console.error("💥 Error saving vessel:", err);
     return res
       .status(500)
-      .json({ success: false, message: "Failed to save vessel" });
+      .json({ success: false, message: err.message || "Failed to save vessel" });
   }
 };
 
@@ -143,12 +122,9 @@ const deactivateVessel = async (req, res) => {
     console.log(`🗑️ Deleting vessel with MMSI: ${mmsi}`);
 
     const vessel = await Vessel.findOneAndDelete({ mmsi });
-
     if (!vessel) {
       console.log("❌ Vessel not found.");
-      return res
-        .status(404)
-        .json({ success: false, message: "Vessel not found" });
+      return res.status(404).json({ success: false, message: "Vessel not found" });
     }
 
     return res.json({
@@ -163,4 +139,26 @@ const deactivateVessel = async (req, res) => {
   }
 };
 
-module.exports = { saveOrCheckVessel, deactivateVessel };
+/**
+ * Get all vessels (sorted by most recently added)
+ */
+const getAllVessels = async (req, res) => {
+  try {
+    console.log("📡 Fetching all vessels (sorted by recently added)...");
+    const vessels = await Vessel.find().sort({ createdAt: -1 });
+    console.log(`✅ Fetched ${vessels.length} vessels.`);
+
+    return res.json({
+      success: true,
+      count: vessels.length,
+      vessels,
+    });
+  } catch (err) {
+    console.error("💥 Error fetching vessels:", err);
+    return res
+      .status(500)
+      .json({ success: false, message: "Failed to fetch vessels" });
+  }
+};
+
+module.exports = { saveOrCheckVessel, deactivateVessel, getAllVessels };

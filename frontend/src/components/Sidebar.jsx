@@ -5,6 +5,7 @@ import { FiChevronLeft, FiChevronRight } from "react-icons/fi";
 import { LiaShipSolid } from "react-icons/lia";
 import { GoPlus } from "react-icons/go";
 import { RxPerson } from "react-icons/rx";
+import { MdMonitor } from "react-icons/md"; // ✅ Added Monitoring icon
 
 const Sidebar = () => {
   const [collapsed, setCollapsed] = useState(false);
@@ -25,6 +26,11 @@ const Sidebar = () => {
       name: "Engineer Info",
       path: "/engineers",
       icon: <RxPerson size={18} />,
+    },
+    {
+      name: "Monitoring", // ✅ New option
+      path: "/monitoring",
+      icon: <MdMonitor size={20} />,
     },
   ];
 
@@ -80,7 +86,7 @@ const Sidebar = () => {
     ${collapsed ? "justify-center" : ""}`}
                 >
                   <div
-                    className={`${isActive ? "text-white" : "text-gray-600"}`} // ✅ removed group-hover:text-white
+                    className={`${isActive ? "text-white" : "text-gray-600"}`} // ✅ consistent icon color
                   >
                     {item.icon}
                   </div>

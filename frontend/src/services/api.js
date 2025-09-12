@@ -27,3 +27,6 @@ export const saveOrCheckVessel = (data) =>
 export const deactivateVessel = (mmsi) =>
   console.log("Deactivating vessel with MMSI:", mmsi) ||
   API.patch(`/vessels/deactivate/${mmsi}`);
+
+// Ships / Vessels
+export const getAllVessels = () => API.get("/vessels/getVessels");

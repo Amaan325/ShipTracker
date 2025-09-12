@@ -58,7 +58,7 @@ const ShipDetails = () => {
     <div className="flex  bg-gray-100">
 
       {/* Main Content */}
-      <main className="flex-1 px-8 overflow-auto">
+      <main className="flex-1  overflow-auto">
         <div className="max-w-7xl mx-auto">
           {/* Conflict Banner */}
           {conflict && showConflict && (

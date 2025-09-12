@@ -1,13 +1,17 @@
 // src/components/ShipMap/ShipMap.jsx
 import React, { useMemo } from "react";
-import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
+import { MapContainer, TileLayer } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 
-import AutoFollow from "../ShipMap/AutoFollow";
-import { createShipIcon, createPortDivIcon } from "../ShipMap/icons";
-import { isValidCoordinate, normalizeRotation } from "../ShipMap/utils";
+import { createShipIcon, createPortDivIcon } from "./icons";
+import { isValidCoordinate, normalizeRotation } from "./utils";
+import { getDistanceMeters } from "./DistanceUtils";
+import ZoneCircle from "./ZoneCircle";
+import ShipMarker from "./ShipMarker";
+import PortMarker from "./PortMarker";
 
 const ICON_ROTATION_OFFSET = 0;
+const RADIUS_METERS = 25 * 1852; // 25nm in meters
 
 const ShipMap = React.memo(function ShipMap({
   latitude,
@@ -24,11 +28,9 @@ const ShipMap = React.memo(function ShipMap({
   const rotationRaw = heading ?? COG ?? 0;
   const rotation = normalizeRotation(rotationRaw, ICON_ROTATION_OFFSET);
 
-  // ✅ Always call hooks at the top
   const shipIcon = useMemo(() => createShipIcon(rotation), [rotation]);
   const portIcon = useMemo(() => createPortDivIcon(), []);
 
-  // Center map
   const center = useMemo(() => {
     if (hasValidLocation && isValidCoordinate(lat) && isValidCoordinate(lng))
       return [lat, lng];
@@ -38,6 +40,18 @@ const ShipMap = React.memo(function ShipMap({
 
   const invalidShipLocation =
     hasValidLocation && (!isValidCoordinate(lat) || !isValidCoordinate(lng));
+
+  // Distance check for circle highlight
+  let isInsideZone = false;
+  if (
+    hasValidLocation &&
+    destinationPort &&
+    isValidCoordinate(lat) &&
+    isValidCoordinate(lng)
+  ) {
+    const dist = getDistanceMeters(lat, lng, destinationPort.lat, destinationPort.lng);
+    isInsideZone = dist <= RADIUS_METERS;
+  }
 
   return (
     <>
@@ -61,33 +75,27 @@ const ShipMap = React.memo(function ShipMap({
 
         {/* Ship Marker */}
         {hasValidLocation && !invalidShipLocation && (
-          <>
-            <AutoFollow lat={lat} lng={lng} enabled />
-            <Marker position={[lat, lng]} icon={shipIcon}>
-              <Popup>
-                <strong>{shipName ?? "Ship"}</strong>
-                <br />
-                Heading: {rotationRaw}°<br />
-                COG: {COG ?? "—"}
-                <br />
-                {destinationPort && `Destination: ${destinationPort.name}`}
-              </Popup>
-            </Marker>
-          </>
+          <ShipMarker
+            lat={lat}
+            lng={lng}
+            icon={shipIcon}
+            shipName={shipName}
+            heading={rotationRaw}
+            COG={COG}
+            destinationPort={destinationPort}
+          />
         )}
 
-        {/* Destination Port Marker */}
+        {/* Destination Port Marker + Zone */}
         {destinationPort && (
-          <Marker
-            position={[destinationPort.lat, destinationPort.lng]}
-            icon={portIcon}
-          >
-            <Popup>
-              <strong>⚓ Destination: {destinationPort.name}</strong>
-              <br />
-              Lat: {destinationPort.lat}, Lng: {destinationPort.lng}
-            </Popup>
-          </Marker>
+          <>
+            <PortMarker port={destinationPort} icon={portIcon} />
+            <ZoneCircle
+              center={[destinationPort.lat, destinationPort.lng]}
+              isInside={isInsideZone}
+              radius={RADIUS_METERS}
+            />
+          </>
         )}
       </MapContainer>
     </>

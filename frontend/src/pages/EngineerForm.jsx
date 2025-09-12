@@ -36,9 +36,14 @@ const EngineerForm = () => {
         const res = await addEngineer(form);
         setEngineers((prev) => [...prev, res.data]);
         resetForm();
-        enqueueSnackbar("Engineer added successfully ✅", { variant: "success" });
+        enqueueSnackbar("Engineer added successfully ✅", {
+          variant: "success",
+        });
       } catch (err) {
-        console.error("Error adding engineer:", err.response?.data || err.message);
+        console.error(
+          "Error adding engineer:",
+          err.response?.data || err.message
+        );
         enqueueSnackbar("Failed to add engineer ❌", { variant: "error" });
       } finally {
         setFormLoading(false);
@@ -49,7 +54,7 @@ const EngineerForm = () => {
 
   return (
     <div className="flex min-h-screen bg-gray-100">
-      <main className="flex-1 px-8 ">
+      <main className="flex-1 ">
         {/* Header */}
         <header className="flex items-center gap-3 mb-8">
           <div className="w-11 h-11 bg-blue-600 rounded-2xl flex items-center justify-center text-white shadow">

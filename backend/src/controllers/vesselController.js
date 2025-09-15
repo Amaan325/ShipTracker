@@ -42,7 +42,7 @@ const normalizeVesselData = (data) => ({
  */
 const saveOrCheckVessel = async (req, res) => {
   try {
-    console.log("📥 Incoming Vessel Data (Raw):", req.body);
+    // console.log("📥 Incoming Vessel Data (Raw):", req.body);
     const vesselData = normalizeVesselData(req.body);
 
     if (!vesselData.mmsi) {
@@ -51,7 +51,7 @@ const saveOrCheckVessel = async (req, res) => {
     }
 
     const existingVessel = await Vessel.findOne({ mmsi: vesselData.mmsi });
-    console.log("🔍 Existing Vessel Found:", existingVessel);
+    // console.log("🔍 Existing Vessel Found:", existingVessel);
 
     if (existingVessel) {
       const sameDetails =

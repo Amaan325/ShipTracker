@@ -11,6 +11,25 @@ export const createShipIcon = () => {
   });
 };
 
+
+// Example: smaller ship icon
+// export const createShipIcon = (rotation = 0) => {
+//   return L.divIcon({
+//     html: `<div style="
+//       transform: rotate(${rotation}deg);
+//       width: 16px; height: 16px;
+//       background: #3498db;
+//       border-radius: 50%;
+//       border: 2px solid white;
+//       box-shadow: 0 0 4px rgba(0,0,0,0.3);
+//     "></div>`,
+//     iconSize: [16, 16],
+//     className: "",
+//   });
+// };
+
+
+
 // Radar-style port icon
 export const createPortDivIcon = () => {
   return L.divIcon({

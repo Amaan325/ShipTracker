@@ -1,12 +1,12 @@
 // src/workers/aisWorker.js
 const cron = require("node-cron");
-const { updateVesselsQueue } = require("../services/vesselService.js");
+const { updateVesselsQueue } = require("../services/vessel/vesselService");
 
 const startAISWorker = () => {
   console.log("🚀 TrackVessels workers starting...");
 
   // Run every 2 minutes
-  cron.schedule("*/10 * * * *", async () => {
+  cron.schedule("*/2 * * * *", async () => {
     console.log(`🚢 [Queue] Running AIS update at ${new Date().toISOString()}`);
     try {
       await updateVesselsQueue();

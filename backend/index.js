@@ -6,7 +6,7 @@ const cookieParser = require("cookie-parser");
 const connectDB = require("./db/connectdb");
 
 // WhatsApp Service
-const { startWhatsApp, isConnected } = require("./src/services/whatsapp");
+const { startWhatsApp, isConnected } = require("./src/services/whatsapp/whatsapp");
 
 // Routes
 const portRoutes = require("./src/routes/portRoutes");

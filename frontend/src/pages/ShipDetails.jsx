@@ -7,7 +7,6 @@ import { fieldMap, navStatusMap } from "../components/ShipDetails/fields";
 import { useAisData } from "../hooks/useAisData";
 import { usePorts } from "../hooks/usePorts";
 import { FaMapMarkedAlt, FaShip } from "react-icons/fa";
-import Sidebar from "../components/Sidebar";
 
 const HIDDEN_FIELDS = ["HEADING", "COG", "DRAUGHT"];
 
@@ -55,11 +54,10 @@ const ShipDetails = () => {
   const hasValidLocation = displayData?.LATITUDE && displayData?.LONGITUDE;
 
   return (
-    <div className="flex  bg-gray-100">
-
+    <div className="flex bg-gray-100">
       {/* Main Content */}
-      <main className="flex-1  overflow-auto">
-        <div className="max-w-7xl mx-auto">
+      <main className="flex-1 overflow-auto">
+        <div className="max-w-7xl mx-auto pt-20 md:pt-0">
           {/* Conflict Banner */}
           {conflict && showConflict && (
             <VesselConflictBanner
@@ -98,13 +96,6 @@ const ShipDetails = () => {
                 {error && <p className="text-red-500">{error}</p>}
                 {hasValidLocation && (
                   <ShipMap
-                    latitude={displayData.LATITUDE}
-                    longitude={displayData.LONGITUDE}
-                    shipName={displayData.NAME ?? displayData.name}
-                    COG={displayData.COG}
-                    heading={displayData.HEADING}
-                    destinationPort={destinationPort}
-                    hasValidLocation={hasValidLocation}
                     zoom={9}
                   />
                 )}
@@ -114,7 +105,7 @@ const ShipDetails = () => {
             {/* Details Card */}
             <div className="mt-6 bg-gray-900 text-white rounded-2xl shadow-md">
               <div className="px-5 py-3 border-b border-gray-700 flex text-sm items-center gap-2">
-                <FaShip className="text-blue-500 "/> Vessel Details 
+                <FaShip className="text-blue-500" /> Vessel Details
               </div>
               <div className="p-4">
                 <ShipDetailsTable entries={entries} />

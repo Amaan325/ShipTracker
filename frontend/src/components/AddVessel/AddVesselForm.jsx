@@ -1,3 +1,4 @@
+// src/components/AddVessel/AddVesselForm.jsx
 import React, { useCallback } from "react";
 import VesselAutocomplete from "./VesselAutoComplete";
 import SelectField from "../common/SelectField";
@@ -8,7 +9,7 @@ import { LiaShipSolid } from "react-icons/lia";
 import { RxPerson } from "react-icons/rx";
 
 const Section = React.memo(({ icon: Icon, title, children }) => (
-  <div className="bg-white p-6 rounded-xl shadow-md border border-gray-200 space-y-4">
+  <div className="bg-white p-6 rounded-xl shadow-md border border-gray-200 space-y-4 w-full">
     <h2 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
       <Icon size={20} className="text-blue-600" />
       {title}
@@ -50,7 +51,7 @@ const AddVesselForm = ({
 
   return (
     <form
-      className="flex flex-col space-y-6 p-6 rounded-xl"
+      className="flex flex-col space-y-6 px-0 md:px-0 w-full"
       onSubmit={handleSubmit}
     >
       {/* Ship Info */}

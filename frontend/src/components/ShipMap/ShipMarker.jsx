@@ -1,11 +1,23 @@
-// src/components/ShipMap/ShipMarker.jsx
 import React from "react";
 import { Marker, Tooltip, Popup } from "react-leaflet";
 import AutoFollow from "./AutoFollow";
 
-const ShipMarker = ({ lat, lng, icon, mmsi, shipName, heading, COG, destination, sog }) => (
+const ShipMarker = ({
+  lat,
+  lng,
+  icon,
+  mmsi,
+  shipName,
+  heading,
+  COG,
+  destination,
+  sog,
+  autoFollow = false, // new prop, default false
+}) => (
   <>
-    <AutoFollow lat={lat} lng={lng} enabled />
+    {/* Only enable AutoFollow if autoFollow is true */}
+    {autoFollow && <AutoFollow lat={lat} lng={lng} enabled={true} />}
+
     <Marker position={[lat, lng]} icon={icon}>
       {/* Permanent Mini Label */}
       <Tooltip
@@ -20,7 +32,7 @@ const ShipMarker = ({ lat, lng, icon, mmsi, shipName, heading, COG, destination,
         </span>
       </Tooltip>
 
-      {/* Hover Card (instead of click) */}
+      {/* Hover Popup */}
       <Popup className="ship-popup">
         <div
           style={{

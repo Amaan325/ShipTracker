@@ -1,6 +1,6 @@
 // src/workers/notificationWorker.js
 const cron = require("node-cron");
-const { processMessageQueue } = require("../services/notificationService");
+const { processMessageQueue } = require("../services/notificationService/notificationService");
 
 function startNotificationWorker() {
   console.log("🚀 Notification worker starting...");

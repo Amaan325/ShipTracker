@@ -54,7 +54,8 @@ const EngineerForm = () => {
 
   return (
     <div className="flex min-h-screen bg-gray-100">
-      <main className="flex-1 ">
+      {/* ✅ add top margin only on mobile */}
+      <main className="flex-1 pt-20 md:pt-0">
         {/* Header */}
         <header className="flex items-center gap-3 mb-8">
           <div className="w-11 h-11 bg-blue-600 rounded-2xl flex items-center justify-center text-white shadow">

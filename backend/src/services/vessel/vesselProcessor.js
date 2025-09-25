@@ -9,7 +9,9 @@ const {
   formatEtaHours,
 } = require("../../utils/formatters");
 const { isDestinationMatch } = require("../../utils/matchers");
-const { checkAndQueueNotification } = require("../notificationService/notificationService");
+const {
+  checkAndQueueNotification,
+} = require("../notificationService/notificationService");
 const { enqueueMessage } = require("../queue/messageQueue");
 
 async function processVessel(vessel, latest) {
@@ -52,40 +54,57 @@ async function processVessel(vessel, latest) {
     ).toFixed(1)}nm | Provider ETA: ${vessel.eta}`
   );
 
-  const phone = normalizePhoneNumber(vessel.engineer?.phone_number);
   const portRadiusNm =
     vessel.port?.radiusNm || ZONE_ENTRY_NOTIFICATION.radiusNm;
-    // console.log(vessel.port)
-   console.log(`Radius of ${vessel.port.arrival_port_name} is ${portRadiusNm}nm`);
-  // Zone entry notification
+  console.log(
+    `Radius of ${vessel.port.arrival_port_name} is ${portRadiusNm}nm`
+  );
+
+  // ✅ Zone entry notification for all engineers
+  // ✅ Zone entry notification for all engineers
   if (!vessel[ZONE_ENTRY_NOTIFICATION.key] && distanceToPort <= portRadiusNm) {
-    if (phone) {
-      const msg = ZONE_ENTRY_NOTIFICATION.message(vessel);
-      if (msg) {
-        enqueueMessage(phone, msg, vessel.name);
-        vessel[ZONE_ENTRY_NOTIFICATION.key] = true;
+    const msg = ZONE_ENTRY_NOTIFICATION.message(vessel); // generate once
 
-        // ✅ Also mark 12h and 48h true when zone entry happens
-        vessel.notified_12h = true;
-        vessel.notified_48h = true;
-
-        console.log(
-          `${vesselTag} 📩 Zone entry notification sent (12h + 48h marked)`
-        );
+    if (msg) {
+      for (const engineer of vessel.engineers || []) {
+        const phone = normalizePhoneNumber(engineer.phone_number);
+        if (phone) {
+          enqueueMessage(phone, msg, vessel.name);
+          console.log(
+            `${vesselTag} 📩 Zone entry notification sent to ${engineer.engineer_name} (${phone})`
+          );
+        } else {
+          console.warn(
+            `${vesselTag} ⚠️ Zone entry: engineer ${
+              engineer?.engineer_name || "N/A"
+            } has no phone`
+          );
+        }
       }
-    } else {
-      console.warn(`${vesselTag} ⚠️ Zone entry: no phone number to notify`);
+
+      // ✅ Mark flags after all engineers notified
+      vessel[ZONE_ENTRY_NOTIFICATION.key] = true;
+      vessel.notified_12h = true;
+      vessel.notified_48h = true;
+    }
+  }
+
+  // Threshold notifications (12h, 48h, etc.)
+  for (const engineer of vessel.engineers || []) {
+    const phone = normalizePhoneNumber(engineer.phone_number);
+    if (phone) {
+      await checkAndQueueNotification(
+        vessel,
+        etaHours,
+        phone,
+        engineer.engineer_name
+      );
     }
   }
 
   // Arrival handling
   const deleted = await handleArrival(vessel, etaHours, sog, distanceToPort);
   if (deleted) return;
-
-  // Threshold notifications
-  if (phone) {
-    await checkAndQueueNotification(vessel, etaHours);
-  }
 
   // Save vessel
   try {

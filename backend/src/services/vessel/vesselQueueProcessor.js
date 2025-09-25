@@ -20,7 +20,7 @@ const updateVesselsQueue = async () => {
 
   const vessels = await Vessel.find({ mmsi: { $in: batchMMSIs } })
     .populate("port")
-    .populate("engineer");
+    .populate("engineers");
 
   console.log(`[Queue] 📦 Processing ${vessels.length} vessels in this batch`);
 

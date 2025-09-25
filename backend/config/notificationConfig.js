@@ -14,15 +14,13 @@ const NOTIFICATION_THRESHOLDS = [
 ];
 
 // Zone entry config
+// Zone entry config
 const ZONE_RADIUS_NM = 25;
 const ZONE_ENTRY_NOTIFICATION = {
   key: "notified_zone_entry",
   radiusNm: ZONE_RADIUS_NM,
-  message: (v) => {
-    if (v.indicated_zone_entry) return null; // already sent once
-    v.indicated_zone_entry = true;
-    return `🚢 ${v.name} has entered the port zone (${v.port.arrival_port_name})`;
-  },
+  message: (v) =>
+    `🚢 ${v.name} has entered the port zone (${v.port.arrival_port_name})`,
 };
 
 // Arrival config

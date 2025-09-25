@@ -3,7 +3,8 @@ const {
   saveOrCheckVessel,
   deactivateVessel,
   getAllVessels,
-  getAllVesselsForMap
+  getAllVesselsForMap,
+  getAllCompletedVessels,
 } = require("../controllers/vesselController.js");
 
 const router = express.Router();
@@ -12,6 +13,7 @@ const router = express.Router();
 router.post("/save-or-check", saveOrCheckVessel);
 router.get("/getVessels", getAllVessels);
 router.get("/getAllForMap", getAllVesselsForMap);
+router.get("/getAllCompletedVessels", getAllCompletedVessels);
 
 // Deactivate vessel
 router.patch("/deactivate/:mmsi", deactivateVessel);

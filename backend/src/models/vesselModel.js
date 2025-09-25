@@ -20,7 +20,11 @@ const vesselSchema = new mongoose.Schema(
     lastVFUpdate: { type: Date, default: null },
 
     port: { type: mongoose.Schema.Types.Mixed },
-    engineer: { type: mongoose.Schema.Types.Mixed },
+    // models/vesselModel.js
+    engineers: {
+      type: [mongoose.Schema.Types.Mixed],
+      default: [],
+    },
 
     notified_48h: { type: Boolean, default: false },
     // notified_24h: { type: Boolean, default: false },
@@ -37,6 +41,7 @@ const vesselSchema = new mongoose.Schema(
     // indicated_notified_1h: { type: Boolean, default: false },
     // indicated_notified_30m: { type: Boolean, default: false },
     // indicated_notified_arrival: { type: Boolean, default: false },
+    trackingStartedAt: { type: Date, default: Date.now },
 
     status: {
       type: String,

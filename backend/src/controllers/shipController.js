@@ -29,9 +29,9 @@ const searchShips = async (req, res) => {
 // Add Vessel
 const addVessel = async (req, res) => {
   try {
-    const { name, mmsi, port: portId, engineer: engineerId } = req.body;
+    const { name, mmsi, port: portId, engineers: engineerIds } = req.body;
 
-    if (!name || !mmsi || !portId || !engineerId) {
+    if (!name || !mmsi || !portId || !engineerIds || engineerIds.length === 0) {
       return res.status(400).json({ message: "All fields are required" });
     }
 
@@ -48,10 +48,11 @@ const addVessel = async (req, res) => {
 
     if (existingVessel) {
       const populatedPort = await Port.findById(portId);
-      const populatedEngineer = await Engineer.findById(engineerId);
+      const populatedEngineers = await Engineer.find({ _id: { $in: engineerIds } });
+
       existingVessel = existingVessel.toObject();
       existingVessel.port = populatedPort;
-      existingVessel.engineer = populatedEngineer;
+      existingVessel.engineers = populatedEngineers;
       existingVessel.isActive = "yes";
 
       return res.status(200).json({
@@ -61,10 +62,10 @@ const addVessel = async (req, res) => {
     }
 
     const portDoc = await Port.findById(portId);
-    const engineerDoc = await Engineer.findById(engineerId);
+    const engineerDocs = await Engineer.find({ _id: { $in: engineerIds } });
 
-    if (!portDoc || !engineerDoc) {
-      return res.status(404).json({ message: "Port or Engineer not found" });
+    if (!portDoc || engineerDocs.length === 0) {
+      return res.status(404).json({ message: "Port or Engineers not found" });
     }
 
     const newVessel = new Ship({
@@ -76,7 +77,7 @@ const addVessel = async (req, res) => {
 
     const responseVessel = newVessel.toObject();
     responseVessel.port = portDoc;
-    responseVessel.engineer = engineerDoc;
+    responseVessel.engineers = engineerDocs;
 
     res.status(201).json({
       message: "Vessel added successfully",

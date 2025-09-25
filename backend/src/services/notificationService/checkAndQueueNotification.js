@@ -20,19 +20,31 @@ async function checkAndQueueNotification(vessel, etaHours) {
     if (etaHours <= t.threshold) {
       if (vessel[t.key]) return false;
 
-      const phone = normalizePhoneNumber(vessel.engineer?.phone_number);
-      if (!phone) return false;
-
       const message = t.message(vessel);
       if (!message) return false;
 
-      // ✅ Normal case (mark + send)
+      // ✅ Mark thresholds before sending
       markHigherThresholds(vessel, i);
       vessel[t.key] = true;
       await vessel.save();
 
-      enqueueMessage(phone, message, vessel.name);
-      console.log(`📩 Queued ${t.threshold}h notification for ${vessel.name}`);
+      // ✅ Loop through all assigned engineers
+      if (Array.isArray(vessel.engineers) && vessel.engineers.length > 0) {
+        for (const eng of vessel.engineers) {
+          const phone = normalizePhoneNumber(eng?.phone_number);
+          if (phone) {
+            enqueueMessage(phone, message, vessel.name);
+            console.log(
+              `📩 Queued ${t.threshold}h notification for ${vessel.name} → Engineer: ${eng.engineer_name}`
+            );
+          }
+        }
+      } else {
+        console.warn(
+          `⚠️ [Vessel:${vessel.name}] No engineers assigned, notification skipped.`
+        );
+      }
+
       return true;
     }
   }

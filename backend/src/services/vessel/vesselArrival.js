@@ -21,29 +21,42 @@ async function handleArrival(vessel, etaHours, sog, distanceToPort) {
       return false;
     }
 
-    const phone = normalizePhoneNumber(vessel.engineer?.phone_number);
-    if (!phone) {
-      console.warn(
-        `${vesselTag} ⚠️ No engineer phone number for arrival notification`
-      );
+    // ✅ Handle multiple engineers
+    const engineers = Array.isArray(vessel.engineers)
+      ? vessel.engineers
+      : vessel.engineer
+      ? [vessel.engineer]
+      : [];
+
+    if (engineers.length === 0) {
+      console.warn(`${vesselTag} ⚠️ No engineer(s) assigned for arrival notification`);
       return false;
     }
 
-    console.log(`${vesselTag} 📩 Queuing ARRIVAL notification`);
-    enqueueMessage(
-      phone,
-      `✅ ${vessel.name} has arrived at ${vessel.port.arrival_port_name}`,
-      vessel.name
-    );
+    // Send arrival notification to all engineers
+    engineers.forEach((eng) => {
+      const phone = normalizePhoneNumber(eng?.phone_number);
+      if (phone) {
+        enqueueMessage(
+          phone,
+          `✅ ${vessel.name} has arrived at ${vessel.port.arrival_port_name}`,
+          vessel.name
+        );
+        console.log(`${vesselTag} 📩 Queued ARRIVAL notification for ${eng.engineer_name}`);
+      } else {
+        console.warn(`${vesselTag} ⚠️ Engineer ${eng?.engineer_name || "N/A"} has no phone number`);
+      }
+    });
 
     vessel.notified_arrival = true;
-    vessel.status = "arrived";
+    vessel.status = "arrived"; // ✅ mark completed/arrived
+    vessel.isActive = false;   // optional: mark inactive
 
     try {
-      await Vessel.deleteOne({ _id: vessel._id });
-      console.log(`${vesselTag} 🗑️ Deleted from database (Arrived)`);
+      await vessel.save();
+      console.log(`${vesselTag} ✅ Marked as arrived in DB`);
     } catch (err) {
-      console.error(`${vesselTag} ❌ Failed to delete: ${err.message}`);
+      console.error(`${vesselTag} ❌ Failed to update: ${err.message}`);
     }
 
     return true;

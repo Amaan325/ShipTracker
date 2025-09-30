@@ -15,32 +15,19 @@ const vesselSchema = new mongoose.Schema(
     destination: { type: String },
     eta: { type: String },
     lastUpdated: { type: Date },
-
-    // NEW: Track when VF was last queried
     lastVFUpdate: { type: Date, default: null },
-
     port: { type: mongoose.Schema.Types.Mixed },
-    // models/vesselModel.js
+
     engineers: {
       type: [mongoose.Schema.Types.Mixed],
       default: [],
     },
 
     notified_48h: { type: Boolean, default: false },
-    // notified_24h: { type: Boolean, default: false },
     notified_12h: { type: Boolean, default: false },
-    // notified_6h: { type: Boolean, default: false },
     notified_zone_entry: { type: Boolean, default: false },
-    // notified_3h: { type: Boolean, default: false },
-    // notified_1h: { type: Boolean, default: false },
-    // notified_30m: { type: Boolean, default: false },
     notified_arrival: { type: Boolean, default: false },
 
-    // NEW: "indicated" flags → message only once unless reset
-    // indicated_notified_3h: { type: Boolean, default: false },
-    // indicated_notified_1h: { type: Boolean, default: false },
-    // indicated_notified_30m: { type: Boolean, default: false },
-    // indicated_notified_arrival: { type: Boolean, default: false },
     trackingStartedAt: { type: Date, default: Date.now },
 
     status: {
@@ -49,6 +36,9 @@ const vesselSchema = new mongoose.Schema(
       default: "tracking",
     },
     isActive: { type: Boolean, default: true },
+
+    // 🔥 Auto-delete field
+    expiresAt: { type: Date, default: null },
   },
   { timestamps: true }
 );
@@ -58,5 +48,8 @@ vesselSchema.index({ mmsi: 1 });
 vesselSchema.index({ status: 1 });
 vesselSchema.index({ isActive: 1 });
 vesselSchema.index({ lastUpdated: 1 });
+
+// TTL Index → auto-delete when expiresAt is reached
+vesselSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
 
 module.exports = mongoose.model("Vessel", vesselSchema);

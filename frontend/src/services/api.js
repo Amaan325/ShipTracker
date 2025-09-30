@@ -13,12 +13,18 @@ export const addEngineer = (engineer) => API.post("/engineers", engineer);
 
 // Ships
 export const addVessel = (vessel) => API.post("/ships", vessel);
-export const searchShips = (query) => API.get(`/ships/search?q=${encodeURIComponent(query)}`);
-export const getVesselDetails = (mmsi) => API.get(`/vessel-finder/vessel/${mmsi}`);
-export const saveOrCheckVessel = (data) => API.post("/vessels/save-or-check", data);
-export const deactivateVessel = (mmsi) => API.patch(`/vessels/deactivate/${mmsi}`);
+export const searchShips = (query) =>
+  API.get(`/ships/search?q=${encodeURIComponent(query)}`);
+export const getVesselDetails = (mmsi) =>
+  API.get(`/vessel-finder/vessel/${mmsi}`);
+export const saveOrCheckVessel = (data) =>
+  API.post("/vessels/save-or-check", data);
+export const deactivateVessel = (mmsi) =>
+  API.patch(`/vessels/deactivate/${mmsi}`);
 // src/services/api.js
 export const getAllVessels = (page = 1, limit = 10) =>
   API.get(`/vessels/getVessels?page=${page}&limit=${limit}`);
 // src/services/api.js
 export const getAllVesselsForMap = () => API.get("/vessels/getAllForMap");
+export const getAllCompletedVessels = (page = 1, limit = 10) =>
+  API.get(`/vessels/getAllCompletedVessels?page=${page}&limit=${limit}`);

@@ -10,6 +10,7 @@ import { getDistanceMeters } from "./DistanceUtils";
 import ZoneCircle from "./ZoneCircle";
 import ShipMarker from "./ShipMarker";
 import PortMarker from "./PortMarker";
+import { formatShipName } from "../../utils/formatShipName"; // ✅ import formatter
 
 const ICON_ROTATION_OFFSET = 0;
 
@@ -17,9 +18,7 @@ const ShipMap = React.memo(function ShipMap({ zoom = 6 }) {
   const vessel = useSelector((state) => state.vessel.currentVessel);
 
   if (!vessel) {
-    return (
-      <p className="text-center text-gray-500 mt-4">No vessel selected</p>
-    );
+    return <p className="text-center text-gray-500 mt-4">No vessel selected</p>;
   }
 
   // Handle both uppercase (AIS) and lowercase fields
@@ -43,12 +42,10 @@ const ShipMap = React.memo(function ShipMap({ zoom = 6 }) {
   const shipIcon = useMemo(() => createShipIcon(rotation), [rotation]);
   const portIcon = useMemo(() => createPortDivIcon(), []);
 
-  // Port info (always lowercase in your backend object)
+  // Port info
   const portLat = vessel.port?.latitude ? Number(vessel.port.latitude) : null;
   const portLng = vessel.port?.longitude ? Number(vessel.port.longitude) : null;
-  const radiusMeters = vessel.port?.radiusNm
-    ? vessel.port.radiusNm * 1852 // NM → meters
-    : 25 * 1852; // fallback
+  const radiusMeters = vessel.port?.radiusNm ? vessel.port.radiusNm * 1852 : 25 * 1852;
 
   const hasValidLocation =
     lat != null && lng != null && isValidCoordinate(lat) && isValidCoordinate(lng);
@@ -68,6 +65,9 @@ const ShipMap = React.memo(function ShipMap({ zoom = 6 }) {
     const dist = getDistanceMeters(lat, lng, portLat, portLng);
     isInsideZone = dist <= radiusMeters;
   }
+
+  // Format ship name
+  const formattedName = formatShipName(vessel.name ?? vessel.NAME ?? "Unknown");
 
   return (
     <>
@@ -93,7 +93,7 @@ const ShipMap = React.memo(function ShipMap({ zoom = 6 }) {
             lat={lat}
             lng={lng}
             icon={shipIcon}
-            shipName={vessel.name ?? vessel.NAME}
+            shipName={formattedName} // ✅ formatted here
             heading={rotationRaw}
             COG={vessel.COG ?? vessel.cog}
             destinationPort={vessel.port}

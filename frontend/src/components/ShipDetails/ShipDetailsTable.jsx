@@ -1,3 +1,5 @@
+import { formatShipName } from "../../utils/formatShipName"; // adjust path
+
 const ShipDetailsTable = ({ entries }) => {
   if (!entries || entries.length === 0) {
     return <p className="text-gray-400 text-center py-4">No data available</p>;
@@ -20,12 +22,18 @@ const ShipDetailsTable = ({ entries }) => {
         </thead>
         <tbody>
           <tr className="bg-gray-900">
-            {entries.map(([label, value]) => (
+            {entries.map(([label, value], index) => (
               <td
                 key={label}
                 className="px-4 py-3 border-b border-gray-700 text-gray-100 text-[13px] whitespace-nowrap"
               >
-                {typeof value === "boolean" ? (value ? "Yes" : "No") : value}
+                {label.toLowerCase() === "ship name"
+                  ? formatShipName(value)
+                  : typeof value === "boolean"
+                  ? value
+                    ? "Yes"
+                    : "No"
+                  : value}
               </td>
             ))}
           </tr>

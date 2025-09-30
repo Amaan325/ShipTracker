@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, forwardRef, useMemo } from "re
 import InputField from "../common/InputField";
 import { searchShips } from "../../services/api";
 import debounce from "lodash.debounce";
+import { formatShipName } from "../../utils/formatShipName"; // ✅ Import
 
 const VesselAutocomplete = forwardRef(
   (
@@ -40,7 +41,6 @@ const VesselAutocomplete = forwardRef(
       return () => fetchVessels.cancel();
     }, [value, fetchVessels]);
 
-    // Generate fallback id for accessibility
     const inputId = useMemo(
       () => id || `vessel-${Math.random().toString(36).slice(2, 9)}`,
       [id]
@@ -49,10 +49,7 @@ const VesselAutocomplete = forwardRef(
     return (
       <div className="w-full relative">
         {label && (
-          <label
-            htmlFor={inputId}
-            className="block text-xs font-medium text-gray-700 mb-1"
-          >
+          <label htmlFor={inputId} className="block text-xs font-medium text-gray-700 mb-1">
             {label}
           </label>
         )}
@@ -81,7 +78,7 @@ const VesselAutocomplete = forwardRef(
                   setSuggestions([]);
                 }}
               >
-                {v.name} ({v.mmsi})
+                {formatShipName(v.name)} ({v.mmsi})
               </li>
             ))}
           </ul>

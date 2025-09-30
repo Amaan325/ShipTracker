@@ -87,3 +87,14 @@
   font-size: 14px;
   text-shadow: 0 0 4px rgba(0, 0, 0, 0.8);
 }
+
+/* index.css */
+.snackbar-container {
+  margin-top: 70px; /* mobile default */
+}
+
+@media (min-width: 768px) {
+  .snackbar-container {
+    margin-top: 20px; /* desktop & larger screens */
+  }
+}

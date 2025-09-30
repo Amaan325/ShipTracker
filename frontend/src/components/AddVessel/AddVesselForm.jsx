@@ -1,4 +1,3 @@
-// src/components/AddVessel/AddVesselForm.jsx
 import React, { useCallback } from "react";
 import VesselAutocomplete from "./VesselAutoComplete";
 import SelectField from "../common/SelectField";
@@ -23,7 +22,7 @@ const AddVesselForm = ({
   selectedVessel,
   mmsi,
   selectedPort,
-  selectedEngineer,
+  selectedEngineers,
   ports,
   engineers,
   submitText,
@@ -77,35 +76,120 @@ const AddVesselForm = ({
           />
         </div>
 
-        <InputField
+        {/* <InputField
           label="IMO Number *"
           type="text"
           value={selectedVessel?.imo || ""}
           readOnly
-        />
+        /> */}
       </Section>
 
       {/* Engineer */}
+      {/* Engineer */}
       <Section icon={RxPerson} title="Engineer Assignment">
-        <SelectField
-          label="Assign Engineer"
-          value={selectedEngineer}
-          onChange={onEngineerChange}
-          options={engineers}
-          placeholder="Select an engineer"
-          required
-        />
+        <div className="space-y-3">
+          {/* Selected Engineers as tags */}
+          <div className="flex flex-wrap gap-2">
+            {selectedEngineers.length > 0 ? (
+              selectedEngineers.map((eng) => (
+                <span
+                  key={eng._id}
+                  className="bg-blue-100 text-blue-700 text-xs px-3 py-1 rounded-full flex items-center gap-1 shadow-sm"
+                >
+                  {eng.engineer_name}
+                  <button
+                    type="button"
+                    onClick={() =>
+                      onEngineerChange(
+                        selectedEngineers.filter((e) => e._id !== eng._id)
+                      )
+                    }
+                    className="text-blue-500 hover:text-blue-700"
+                  >
+                    ✕
+                  </button>
+                </span>
+              ))
+            ) : (
+              <span className="text-gray-400 text-sm">
+                No engineers selected
+              </span>
+            )}
+          </div>
+
+          {/* Dropdown */}
+          <div className="relative inline-block w-full">
+            <button
+              type="button"
+              className="w-full bg-gray-100 border border-gray-300 rounded-lg shadow-sm px-4 py-2 text-left text-sm text-gray-700 hover:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-500 flex justify-between items-center"
+              onClick={(e) => {
+                e.preventDefault();
+                const dropdown = e.currentTarget.nextSibling;
+                dropdown.classList.toggle("hidden");
+              }}
+            >
+              Select Engineers
+              <svg
+                className="w-4 h-4 ml-2 text-gray-500"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  d="M19 9l-7 7-7-7"
+                />
+              </svg>
+            </button>
+
+            {/* Dropdown menu */}
+            <div className="absolute z-10 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-56 overflow-y-auto hidden">
+              {engineers.map((eng) => {
+                const isSelected = selectedEngineers.some(
+                  (e) => e._id === eng._id
+                );
+                return (
+                  <label
+                    key={eng._id}
+                    className="flex items-center gap-3 px-4 py-2 hover:bg-blue-50 cursor-pointer text-sm"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={isSelected}
+                      onChange={() => {
+                        if (isSelected) {
+                          onEngineerChange(
+                            selectedEngineers.filter((e) => e._id !== eng._id)
+                          );
+                        } else {
+                          onEngineerChange([...selectedEngineers, eng]);
+                        }
+                      }}
+                      className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                    />
+                    <span className="text-gray-700">{eng.engineer_name}</span>
+                  </label>
+                );
+              })}
+            </div>
+          </div>
+        </div>
       </Section>
 
       {/* Route */}
       <Section icon={IoLocationOutline} title="Route Information">
         <SelectField
           label="Expected Arrival Port"
-          value={selectedPort}
+          value={selectedPort} // 👈 full object
           onChange={onPortChange}
-          options={ports}
+          options={ports} // 👈 full objects
           placeholder="Select expected arrival port"
           required
+          getOptionLabel={(p) => p.arrival_port_name}
+          getOptionValue={(p) => p._id}
         />
       </Section>
 

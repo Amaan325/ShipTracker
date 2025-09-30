@@ -1,4 +1,3 @@
-// src/pages/AddVessel/hooks/useAddVessel.js
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useSnackbar } from "notistack";
 import { useDispatch } from "react-redux";
@@ -18,7 +17,7 @@ export const useAddVessel = () => {
   const [selectedVessel, setSelectedVessel] = useState(null);
   const [mmsi, setMmsi] = useState("");
   const [selectedPort, setSelectedPort] = useState("");
-  const [selectedEngineer, setSelectedEngineer] = useState("");
+  const [selectedEngineers, setSelectedEngineers] = useState([]); // 👈 full objects
   const [ports, setPorts] = useState([]);
   const [engineers, setEngineers] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -33,12 +32,9 @@ export const useAddVessel = () => {
           getEngineers(),
         ]);
         if (!mounted) return;
-        setPorts(
-          portsRes.data.map((p) => ({ value: p._id, label: p.arrival_port_name }))
-        );
-        setEngineers(
-          engineersRes.data.map((e) => ({ value: e._id, label: e.engineer_name }))
-        );
+
+        setPorts(portsRes.data); // 👈 full objects
+        setEngineers(engineersRes.data); // 👈 full objects
       } catch {
         enqueueSnackbar("Failed to load ports or engineers", { variant: "error" });
       }
@@ -61,7 +57,13 @@ export const useAddVessel = () => {
     setMmsi(v.mmsi);
   }, []);
 
-  const onChange = useCallback((setter) => (e) => setter(e.target.value), []);
+  const onPortChange = useCallback((port) => {
+    setSelectedPort(port); // 👈 full object
+  }, []);
+
+  const onEngineerChange = useCallback((value) => {
+    setSelectedEngineers(value); // 👈 array of full objects
+  }, []);
 
   const onSubmit = useCallback(
     async (e) => {
@@ -75,6 +77,13 @@ export const useAddVessel = () => {
         return;
       }
 
+      if (selectedEngineers.length === 0) {
+        enqueueSnackbar("Please assign at least one engineer", {
+          variant: "warning",
+        });
+        return;
+      }
+
       isSubmittingRef.current = true;
       setLoading(true);
 
@@ -82,8 +91,8 @@ export const useAddVessel = () => {
         const res = await addVessel({
           name: selectedVessel?.name ?? vesselCodeQuery,
           mmsi,
-          port: selectedPort,
-          engineer: selectedEngineer,
+          port: selectedPort, // 👈 full object
+          engineers: selectedEngineers, // 👈 array of full objects
         });
 
         dispatch(setCurrentVessel(res.data.vessel));
@@ -107,10 +116,9 @@ export const useAddVessel = () => {
         setLoading(false);
       }
     },
-    [selectedVessel, vesselCodeQuery, mmsi, selectedPort, selectedEngineer, dispatch, enqueueSnackbar, navigate]
+    [selectedVessel, vesselCodeQuery, mmsi, selectedPort, selectedEngineers, dispatch, enqueueSnackbar, navigate]
   );
 
-  // Derived values
   const submitText = useMemo(
     () => (loading ? "Processing..." : "Add Vessel"),
     [loading]
@@ -121,15 +129,15 @@ export const useAddVessel = () => {
     selectedVessel,
     mmsi,
     selectedPort,
-    selectedEngineer,
+    selectedEngineers,
     ports,
     engineers,
     loading,
     submitText,
     onVesselInputChange,
     onVesselSelect,
-    onPortChange: onChange(setSelectedPort),
-    onEngineerChange: onChange(setSelectedEngineer),
+    onPortChange,
+    onEngineerChange,
     onSubmit,
     setMmsi,
   };

@@ -1,0 +1,110 @@
+// src/pages/Password.jsx
+import React, { useState, useEffect, useCallback } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
+import { useSnackbar } from "notistack";
+import { motion, AnimatePresence } from "framer-motion";
+import logo from "../assets/logo.png";
+
+const PASSWORD_KEY = "vesselPasswordEntered";
+const PASSWORD = "L48HN99K";
+const EXPIRY_MS = 4 * 60 * 60 * 1000; // 4 hours in ms
+
+const Password = () => {
+  const navigate = useNavigate();
+  const { state } = useLocation();
+  const { enqueueSnackbar } = useSnackbar();
+  const [password, setPassword] = useState("");
+  const [unlocked, setUnlocked] = useState(false);
+
+  const from = state?.from?.pathname || "/";
+
+  // ✅ Check saved password once on mount
+  useEffect(() => {
+    const saved = localStorage.getItem(PASSWORD_KEY);
+    if (saved) {
+      try {
+        const { expiry } = JSON.parse(saved);
+        if (Date.now() < expiry) navigate(from, { replace: true });
+      } catch {
+        localStorage.removeItem(PASSWORD_KEY);
+      }
+    }
+  }, [from, navigate]);
+
+  // ✅ Memoized handler
+  const handleSubmit = useCallback(
+    (e) => {
+      e.preventDefault();
+      if (password === PASSWORD) {
+        const expiry = Date.now() + EXPIRY_MS;
+        localStorage.setItem(PASSWORD_KEY, JSON.stringify({ expiry }));
+        enqueueSnackbar("Password correct! Redirecting...", {
+          variant: "success",
+          autoHideDuration: 1000,
+        });
+        setUnlocked(true);
+        setTimeout(() => navigate(from, { replace: true }), 800);
+      } else {
+        enqueueSnackbar("Incorrect password", { variant: "error" });
+      }
+    },
+    [password, enqueueSnackbar, from, navigate]
+  );
+
+  return (
+    <div className="flex items-center justify-center min-h-screen w-full bg-gradient-to-br from-blue-50 via-white to-blue-100">
+      <AnimatePresence>
+        {!unlocked && (
+          <motion.div
+            key="card"
+            initial={{ opacity: 0, y: 50, scale: 0.9 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -60, scale: 0.8 }}
+            transition={{ duration: 0.8, ease: "easeInOut" }}
+            className="relative w-full max-w-md p-10 rounded-2xl shadow-2xl 
+                       bg-white/70 backdrop-blur-xl border border-gray-200"
+          >
+            <img
+              src={logo}
+              alt="Logo"
+              className="mx-auto mb-8 w-[400px] h-28 object-contain"
+              loading="lazy" // 🚀 optimize logo load
+              decoding="async"
+            />
+
+            <h2 className="text-2xl font-bold text-gray-800 mb-6 tracking-tight">
+              Secure Access
+            </h2>
+            <p className="text-gray-500 mb-8 text-sm">
+              Please enter the access password to continue
+            </p>
+
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Enter password"
+                autoComplete="current-password"
+                className="w-full px-4 py-3 rounded-xl border border-gray-300 
+                           focus:border-blue-500 focus:ring-2 focus:ring-blue-500 
+                           outline-none text-gray-700 text-md transition shadow-sm"
+              />
+              <button
+                type="submit"
+                className="w-full py-3 rounded-xl bg-gradient-to-r from-blue-600 to-blue-700 
+                           text-white font-semibold text-lg shadow-md
+                           hover:from-blue-700 hover:to-blue-800 
+                           transform hover:scale-[1.03] transition-all duration-300"
+              >
+                Unlock
+              </button>
+            </form>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+};
+
+export default React.memo(Password); // 🚀 prevent useless re-renders

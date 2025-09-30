@@ -57,7 +57,7 @@ const EngineerForm = () => {
       {/* ✅ add top margin only on mobile */}
       <main className="flex-1 pt-20 md:pt-0">
         {/* Header */}
-        <header className="flex items-center gap-3 mb-8">
+        <header className="flex items-center gap-3 mb-8  md:px-0">
           <div className="w-11 h-11 bg-blue-600 rounded-2xl flex items-center justify-center text-white shadow">
             <FaUser size={22} />
           </div>
@@ -72,10 +72,24 @@ const EngineerForm = () => {
         </header>
 
         {/* Add Engineer Form */}
-        <AddEngineerForm onAdd={handleAdd} />
+        <div className=" md:px-0">
+          <AddEngineerForm onAdd={handleAdd} />
+        </div>
 
-        {/* Engineer List */}
-        <EngineerTable engineers={engineers} loading={loading} />
+        {/* Engineer List - mobile gutter fix */}
+        <div className="mt-6 px-0 md:px-0">
+          {/* 
+            strategy:
+            - overflow-x-auto on small screens so the table can scroll horizontally
+            - inner padded block (px-4) on mobile to preserve left/right gutters
+            - md:px-0 to keep desktop unchanged
+          */}
+          <div className="overflow-x-auto md:overflow-visible">
+            {/* <div className="inline-block min-w-full px-4 md:px-0 box-border"> */}
+            <EngineerTable engineers={engineers} loading={loading} />
+            {/* </div> */}
+          </div>
+        </div>
       </main>
     </div>
   );

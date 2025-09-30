@@ -4,7 +4,7 @@ import L from "leaflet";
 // Ship icon (PNG in public folder)
 export const createShipIcon = () => {
   return L.icon({
-    iconUrl: "/cargo-ship.png", // make sure this file exists in public folder
+    iconUrl: `${import.meta.env.BASE_URL}cargo-ship.png`, // correct path in both dev & prod
     iconSize: [40, 40],
     iconAnchor: [20, 20],
     popupAnchor: [0, -20],

@@ -9,7 +9,6 @@ const ProtectedRoute = ({ children }) => {
   const location = useLocation();
 
   if (!saved || now > saved.expiry) {
-    // Redirect to password page with the original path
     return <Navigate to="/password" state={{ from: location }} replace />;
   }
 

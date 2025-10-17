@@ -46,7 +46,7 @@ async function handleArrival(vessel, etaHours, sog, distanceToPort) {
       if (phone) {
         enqueueMessage(
           phone,
-          `✅ ${vessel.name} has arrived at the port of ${vessel.port.arrival_port_name} on ${gmtTime}`,
+          `✅ ${vessel.name} has arrived at the ${vessel.port.arrival_port_name} on ${gmtTime}`,
           vessel.name
         );
         console.log(

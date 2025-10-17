@@ -12,14 +12,15 @@ export const useAddVessel = () => {
   const dispatch = useDispatch();
   const isSubmittingRef = useRef(false);
 
-  // State
+  // ✅ State
   const [vesselCodeQuery, setVesselCodeQuery] = useState("");
   const [selectedVessel, setSelectedVessel] = useState(null);
   const [mmsi, setMmsi] = useState("");
   const [selectedPort, setSelectedPort] = useState("");
-  const [selectedEngineers, setSelectedEngineers] = useState([]); // 👈 full objects
+  const [selectedEngineers, setSelectedEngineers] = useState([]);
   const [ports, setPorts] = useState([]);
   const [engineers, setEngineers] = useState([]);
+  const [label, setLabel] = useState("Other"); // ✅ FIXED
   const [loading, setLoading] = useState(false);
 
   // Fetch ports & engineers once
@@ -33,8 +34,8 @@ export const useAddVessel = () => {
         ]);
         if (!mounted) return;
 
-        setPorts(portsRes.data); // 👈 full objects
-        setEngineers(engineersRes.data); // 👈 full objects
+        setPorts(portsRes.data);
+        setEngineers(engineersRes.data);
       } catch {
         enqueueSnackbar("Failed to load ports or engineers", { variant: "error" });
       }
@@ -58,11 +59,11 @@ export const useAddVessel = () => {
   }, []);
 
   const onPortChange = useCallback((port) => {
-    setSelectedPort(port); // 👈 full object
+    setSelectedPort(port);
   }, []);
 
   const onEngineerChange = useCallback((value) => {
-    setSelectedEngineers(value); // 👈 array of full objects
+    setSelectedEngineers(value);
   }, []);
 
   const onSubmit = useCallback(
@@ -91,8 +92,9 @@ export const useAddVessel = () => {
         const res = await addVessel({
           name: selectedVessel?.name ?? vesselCodeQuery,
           mmsi,
-          port: selectedPort, // 👈 full object
-          engineers: selectedEngineers, // 👈 array of full objects
+          label, // ✅ working now
+          port: selectedPort,
+          engineers: selectedEngineers,
         });
 
         dispatch(setCurrentVessel(res.data.vessel));
@@ -116,7 +118,7 @@ export const useAddVessel = () => {
         setLoading(false);
       }
     },
-    [selectedVessel, vesselCodeQuery, mmsi, selectedPort, selectedEngineers, dispatch, enqueueSnackbar, navigate]
+    [selectedVessel, vesselCodeQuery, mmsi, selectedPort, selectedEngineers, label, dispatch, enqueueSnackbar, navigate]
   );
 
   const submitText = useMemo(
@@ -132,6 +134,8 @@ export const useAddVessel = () => {
     selectedEngineers,
     ports,
     engineers,
+    label, // ✅ include it
+    setLabel, // ✅ include it
     loading,
     submitText,
     onVesselInputChange,

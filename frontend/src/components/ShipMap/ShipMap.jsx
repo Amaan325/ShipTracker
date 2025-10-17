@@ -46,7 +46,7 @@ const ShipMap = React.memo(function ShipMap({ zoom = 6 }) {
   const portLat = vessel.port?.latitude ? Number(vessel.port.latitude) : null;
   const portLng = vessel.port?.longitude ? Number(vessel.port.longitude) : null;
   const radiusMeters = vessel.port?.radiusNm ? vessel.port.radiusNm * 1852 : 25 * 1852;
-
+const label = vessel.labe || vessel.LABEL || "N/A";
   const hasValidLocation =
     lat != null && lng != null && isValidCoordinate(lat) && isValidCoordinate(lng);
 
@@ -92,6 +92,7 @@ const ShipMap = React.memo(function ShipMap({ zoom = 6 }) {
           <ShipMarker
             lat={lat}
             lng={lng}
+            label = {label}
             icon={shipIcon}
             shipName={formattedName} // ✅ formatted here
             heading={rotationRaw}

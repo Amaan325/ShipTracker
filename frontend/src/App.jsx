@@ -10,6 +10,7 @@ import Monitoring from "./pages/Monitoring";
 import Password from "./pages/Password";
 import Sidebar from "./components/Sidebar";
 import ProtectedRoute from "./components/ProtectedRoute";
+import Statistics from "./pages/Statistics";
 
 const App = () => {
   return (
@@ -32,6 +33,7 @@ const App = () => {
                       <Route path="/engineers" element={<EngineerForm />} />
                       <Route path="/ship-details" element={<ShipDetails />} />
                       <Route path="/monitoring" element={<Monitoring />} />
+                      <Route path="/statistics" element={<Statistics />} />
                     </Routes>
                   </main>
                 </div>

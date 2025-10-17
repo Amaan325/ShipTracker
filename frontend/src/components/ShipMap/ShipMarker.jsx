@@ -10,6 +10,7 @@ const ShipMarker = ({
   shipName,
   heading,
   COG,
+  label,
   destination,
   sog,
   autoFollow = false, // new prop, default false
@@ -28,7 +29,7 @@ const ShipMarker = ({
         className="ship-tooltip-name"
       >
         <span style={{ fontSize: "12px", fontWeight: "600", color: "#333" }}>
-          {shipName || "Unknown"}
+          {`${shipName} ( ${label} )` || "Unknown"}
         </span>
       </Tooltip>
 
@@ -54,9 +55,15 @@ const ShipMarker = ({
           >
             🚢 {shipName ?? "Ship"}
           </h3>
-          <p><strong>MMSI:</strong> {mmsi || "—"}</p>
-          <p><strong>Destination:</strong> {destination?.name || "—"}</p>
-          <p><strong>Speed:</strong> {sog || "—"} kn</p>
+          <p>
+            <strong>MMSI:</strong> {mmsi || "—"}
+          </p>
+          <p>
+            <strong>Destination:</strong> {destination?.name || "—"}
+          </p>
+          <p>
+            <strong>Speed:</strong> {sog || "—"} kn
+          </p>
         </div>
       </Popup>
     </Marker>

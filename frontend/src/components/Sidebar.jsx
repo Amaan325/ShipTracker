@@ -1,27 +1,42 @@
-// src/components/Sidebar.jsx
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { FiChevronLeft, FiChevronRight, FiMenu, FiX } from "react-icons/fi";
 import { LiaShipSolid } from "react-icons/lia";
 import { GoPlus } from "react-icons/go";
 import { RxPerson } from "react-icons/rx";
-import { MdMonitor } from "react-icons/md";
+import { MdMonitor, MdOutlineAnalytics } from "react-icons/md";
 import logo from "../assets/logo.png";
+import { getWhatsAppStatus } from "../services/api"; // ✅ import API call
 
 const Sidebar = () => {
+  const [isWhatsAppConnected, setIsWhatsAppConnected] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
-  const [mobileOpen, setMobileOpen] = useState(false); // ✅ Mobile toggle
+  const [mobileOpen, setMobileOpen] = useState(false);
   const location = useLocation();
+
+  // ✅ Fetch WhatsApp connection status every 10s
+  useEffect(() => {
+    const fetchStatus = async () => {
+      try {
+        const res = await getWhatsAppStatus();
+        setIsWhatsAppConnected(res.data.connected);
+      } catch (error) {
+        console.error("Error fetching WhatsApp status:", error);
+        setIsWhatsAppConnected(false);
+      }
+    };
+
+    fetchStatus();
+    const interval = setInterval(fetchStatus, 10000); // update every 10s
+    return () => clearInterval(interval);
+  }, []);
 
   const navItems = [
     { name: "Add Ship", path: "/", icon: <GoPlus size={18} /> },
-    {
-      name: "Ship Details",
-      path: "/ship-details",
-      icon: <LiaShipSolid size={20} />,
-    },
+    { name: "Ship Details", path: "/ship-details", icon: <LiaShipSolid size={20} /> },
     { name: "Engineer Info", path: "/engineers", icon: <RxPerson size={18} /> },
     { name: "Monitoring", path: "/monitoring", icon: <MdMonitor size={20} /> },
+    { name: "Statistics", path: "/statistics", icon: <MdOutlineAnalytics size={20} /> },
   ];
 
   return (
@@ -35,16 +50,19 @@ const Sidebar = () => {
         {/* Top Section */}
         <div>
           <div className="flex items-center justify-between px-4 py-4 border-b">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 relative">
               <div className="w-9 h-9 bg-blue-600 rounded-xl flex items-center justify-center text-white">
                 <LiaShipSolid size={24} />
               </div>
               {!collapsed && (
-                <div>
-                  <h2 className="text-sm font-semibold text-gray-800">
-                    ShipTracker
-                  </h2>
-                  <p className="text-xs text-gray-500">Marine Ops</p>
+                <div className="flex items-center gap-2">
+                  <h2 className="text-sm font-semibold text-gray-800">ShipTracker</h2>
+                  {/* ✅ WhatsApp Status Dot */}
+                  <span
+                    className={`w-2.5 h-2.5 rounded-full ${
+                      isWhatsAppConnected ? "bg-green-500" : "bg-red-500"
+                    }`}
+                  ></span>
                 </div>
               )}
             </div>
@@ -97,11 +115,12 @@ const Sidebar = () => {
           </nav>
         </div>
 
+        {/* ✅ Removed WhatsApp status text section */}
+
         {/* User Info */}
         <div className="flex items-center gap-2 px-4 py-4 border-t ">
-          <div className="w-24 h-12  rounded-full flex items-center justify-center overflow-hidden">
+          <div className="w-24 h-12 rounded-full flex items-center justify-center overflow-hidden">
             <img src={logo} alt="Logo" className="rounded-full" />
-
           </div>
 
           {!collapsed && (
@@ -121,6 +140,12 @@ const Sidebar = () => {
               <LiaShipSolid size={20} />
             </div>
             <h2 className="text-sm font-semibold text-gray-800">ShipTracker</h2>
+            {/* ✅ Add dot here for mobile as well */}
+            <span
+              className={`w-2.5 h-2.5 rounded-full ${
+                isWhatsAppConnected ? "bg-green-500" : "bg-red-500"
+              }`}
+            ></span>
           </div>
           <button
             onClick={() => setMobileOpen(!mobileOpen)}

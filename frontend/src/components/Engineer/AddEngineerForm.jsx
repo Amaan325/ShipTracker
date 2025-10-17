@@ -1,10 +1,9 @@
-// src/components/Engineer/AddEngineerForm.jsx
-import React, { useState, memo } from "react";
+import React, { useState, useEffect, memo } from "react";
 import { GoPlus } from "react-icons/go";
 import InputField from "../common/InputField";
 import { useSnackbar } from "notistack";
 
-const AddEngineerForm = ({ onAdd }) => {
+const AddEngineerForm = ({ onAdd, editing, setEditing }) => {
   const [form, setForm] = useState({
     engineer_name: "",
     email: "",
@@ -13,11 +12,24 @@ const AddEngineerForm = ({ onAdd }) => {
   const [loading, setLoading] = useState(false);
   const { enqueueSnackbar } = useSnackbar();
 
+  // 🧠 Prefill form when editing changes
+  useEffect(() => {
+    if (editing) {
+      setForm({
+        engineer_name: editing.engineer_name || "",
+        email: editing.email || "",
+        phone_number: editing.phone_number || "",
+      });
+    }
+  }, [editing]);
+
   const handleChange = (e) =>
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
 
-  const resetForm = () =>
+  const resetForm = () => {
     setForm({ engineer_name: "", email: "", phone_number: "" });
+    setEditing(null); // reset editing mode
+  };
 
   const handleSubmit = () => {
     if (!form.engineer_name || !form.email || !form.phone_number) {
@@ -32,10 +44,12 @@ const AddEngineerForm = ({ onAdd }) => {
       {/* Title */}
       <div className="flex items-center gap-2 mb-4">
         <GoPlus className="w-5 h-5 text-blue-500" />
-        <h2 className="text-lg font-semibold text-gray-700">Add Engineer</h2>
+        <h2 className="text-lg font-semibold text-gray-700">
+          {editing ? "Edit Engineer" : "Add Engineer"}
+        </h2>
       </div>
 
-      {/* Form Grid */}
+      {/* Form Fields */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -76,14 +90,30 @@ const AddEngineerForm = ({ onAdd }) => {
         </div>
       </div>
 
-      {/* Submit */}
-      <div className="mt-4 flex justify-end">
+      {/* Buttons */}
+      <div className="mt-4 flex justify-end gap-3">
+        {editing && (
+          <button
+            onClick={resetForm}
+            className="bg-gray-300 hover:bg-gray-400 text-gray-800 px-5 py-2 rounded-lg text-sm font-medium transition"
+          >
+            Cancel
+          </button>
+        )}
         <button
           onClick={handleSubmit}
           disabled={loading}
-          className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white px-5 py-2 rounded-lg text-sm font-medium transition"
+          className={`${
+            editing ? "bg-green-600 hover:bg-green-700" : "bg-blue-600 hover:bg-blue-700"
+          } disabled:opacity-50 text-white px-5 py-2 rounded-lg text-sm font-medium transition`}
         >
-          {loading ? "Adding..." : "+ Add Engineer"}
+          {loading
+            ? editing
+              ? "Updating..."
+              : "Adding..."
+            : editing
+            ? "Update Engineer"
+            : "+ Add Engineer"}
         </button>
       </div>
     </div>

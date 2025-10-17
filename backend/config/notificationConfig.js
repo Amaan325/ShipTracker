@@ -15,18 +15,28 @@ const NOTIFICATION_THRESHOLDS = [
 
 // Zone entry config
 const ZONE_RADIUS_NM = 25;
+
 const ZONE_ENTRY_NOTIFICATION = {
   key: "notified_zone_entry",
   radiusNm: ZONE_RADIUS_NM,
   message: (v) => {
-    const portCode = v.port?.unlocode; // normalized UNLOCODE (e.g., BEANR, NLRTM, etc.)
+    const portCode = v.port?.unlocode; // e.g., BEANR, NLRTM, BEZEE
     const portName = v.port?.arrival_port_name;
+    const vesselName = v.name;
 
-    if (portCode === "BEANR") {
-      return `🚢 ${v.name} has entered the port zone of ${portName}. Vessel will arrive in 3-4 hours. Please plan accordingly.`;
+    switch (portCode) {
+      case "BEANR":
+        return `🚢 ${vesselName} has entered the Port Channel of Antwerp. Vessel will arrive in 3–4 hours. Please plan accordingly.`;
+
+      case "NLRTM":
+        return `🚢 ${vesselName} has entered the Port Channel of Rotterdam. Vessel will arrive in 2–3 hours. Please plan accordingly.`;
+
+      case "BEZEE":
+        return `🚢 ${vesselName} has entered the Port Channel of Zeebrugge. Vessel will arrive in approximately 3 hours. Please plan accordingly.`;
+
+      default:
+        return `🚢 ${vesselName} has entered the Port Channel of ${portName}. Vessel will arrive soon. Please plan accordingly.`;
     }
-
-    return `🚢 ${v.name} has entered the port zone of ${portName}. Vessel will arrive in 2 hours. Please plan accordingly.`;
   },
 };
 

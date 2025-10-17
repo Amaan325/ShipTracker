@@ -29,9 +29,9 @@ const searchShips = async (req, res) => {
 // Add Vessel
 const addVessel = async (req, res) => {
   try {
-    const { name, mmsi, port: portId, engineers: engineerIds } = req.body;
+    const { name, mmsi, port: portId, engineers: engineerIds , label } = req.body;
 
-    if (!name || !mmsi || !portId || !engineerIds || engineerIds.length === 0) {
+    if (!name || !mmsi || !label || !portId || !engineerIds || engineerIds.length === 0) {
       return res.status(400).json({ message: "All fields are required" });
     }
 
@@ -54,6 +54,7 @@ const addVessel = async (req, res) => {
       existingVessel.port = populatedPort;
       existingVessel.engineers = populatedEngineers;
       existingVessel.isActive = "yes";
+  existingVessel.label = label; // ✅ Add this line
 
       return res.status(200).json({
         message: "Vessel already exists",
@@ -78,7 +79,9 @@ const addVessel = async (req, res) => {
     const responseVessel = newVessel.toObject();
     responseVessel.port = portDoc;
     responseVessel.engineers = engineerDocs;
-
+    responseVessel.label = label;
+    responseVessel.isActive = "yes";
+    
     res.status(201).json({
       message: "Vessel added successfully",
       vessel: responseVessel,

@@ -6,6 +6,13 @@ const vesselSchema = new mongoose.Schema(
     imo: { type: String },
     name: { type: String },
     callsign: { type: String },
+
+    label: {
+      type: String,
+      enum: ["Repair", "Install", "Delivery/Collection", "Other"],
+      default: "Other",
+    },
+
     type: { type: Number },
     latitude: { type: Number },
     longitude: { type: Number },

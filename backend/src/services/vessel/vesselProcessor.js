@@ -13,10 +13,14 @@ const {
   checkAndQueueNotification,
 } = require("../notificationService/notificationService");
 const { enqueueMessage } = require("../queue/messageQueue");
+const { recordApiCall } = require("../../controllers/apiStatsController");
+
+// after you receive data
 
 async function processVessel(vessel, latest) {
   const vesselTag = `[Vessel:${vessel.name}]`;
-  console.log(`${vesselTag} [RAW] ${JSON.stringify(latest)}`);
+  console.log(`${vesselTag} [RAW] ${JSON.stringify(latest.__source)}`);
+  await recordApiCall(latest.__source);
 
   // Merge AIS/VF fields
   mergeAISFields(vessel, latest);

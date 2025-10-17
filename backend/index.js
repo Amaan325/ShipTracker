@@ -14,14 +14,15 @@ const engineerRoutes = require("./src/routes/engineerRoutes");
 const shipRoutes = require("./src/routes/shipRoutes");
 const vesselFinderRoutes = require("./src/routes/vesselFinderRoutes");
 const vesselRoutes = require("./src/routes/vesselRoutes");
-
+const apiStatsRoutes = require("./src/routes/apiStatsRoutes");
+const whatsappRoutes = require("./src/routes/whatsappRoutes");
 // Cron
 const { startVesselTracking } = require("./cron/trackVessels");
 
 // Middleware
 app.use(express.json());
 app.use(cookieParser());
-app.use(cors({ origin: "http://localhost:5174", credentials: true }));
+app.use(cors({ origin: "http://localhost:5173", credentials: true }));
 
 // Connect DB, start WhatsApp, then cron
 connectDB().then(async () => {
@@ -49,6 +50,10 @@ app.use("/api/engineers", engineerRoutes);
 app.use("/api/ships", shipRoutes);
 app.use("/api/vessel-finder", vesselFinderRoutes);
 app.use("/api/vessels", vesselRoutes);
+app.use("/api", apiStatsRoutes);
+
+app.use("/api/whatsapp", whatsappRoutes);
+
 
 // Global error handler
 app.use((err, req, res, next) => {

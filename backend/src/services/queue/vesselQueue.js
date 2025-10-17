@@ -23,7 +23,7 @@ const initVesselQueue = async () => {
 };
 
 /**
- * Get the next batch of MMSIs from the queue
+ * Get the next batch of MMSIs fddrom the queue
  */
 const getNextBatch = (batchSize = 50) => {
   if (vesselQueue.length === 0) {

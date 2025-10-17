@@ -24,6 +24,7 @@ const normalizeVesselData = (data) => ({
         radiusNm: data.port.radiusNm,
       }
     : null,
+  label: data.label || "Other", // ✅ include label
 
   engineers: Array.isArray(data.engineers)
     ? data.engineers.map((eng) => ({
@@ -33,8 +34,7 @@ const normalizeVesselData = (data) => ({
         phone_number: eng.phone_number,
       }))
     : [],
-
-  status: data.status || "tracking", // 👈 default to tracking
+  status: data.status || "tracking",
 });
 
 // ✅ Save or update vessel
@@ -233,6 +233,7 @@ const getAllVesselsForMap = async (req, res) => {
         destination: 1,
         sog: 1,
         status: 1,
+        label: 1, // ✅ include label
       }
     ).lean();
 
@@ -278,10 +279,37 @@ const getAllCompletedVessels = async (req, res) => {
   }
 };
 
+// ✅ Delete vessel by ID
+const deleteVessel = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const vessel = await Vessel.findByIdAndDelete(id);
+
+    if (!vessel) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Vessel not found" });
+    }
+
+    return res.json({
+      success: true,
+      message: "Vessel deleted successfully",
+      vessel,
+    });
+  } catch (err) {
+    console.error("Error deleting vessel:", err);
+    return res
+      .status(500)
+      .json({ success: false, message: "Failed to delete vessel" });
+  }
+};
+
 module.exports = {
   saveOrCheckVessel,
   deactivateVessel,
   getAllVessels,
   getAllCompletedVessels,
   getAllVesselsForMap,
+  deleteVessel,
 };

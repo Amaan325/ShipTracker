@@ -2,55 +2,94 @@ const P = require("pino");
 const QRCode = require("qrcode");
 const qrcodeTerminal = require("qrcode-terminal");
 const path = require("path");
+const fs = require("fs");
 
 let sock;
-let baileys; // cache module
+let baileys;
+let firstRun = true;
 
 async function startWhatsApp() {
   if (!baileys) {
     baileys = await import("@whiskeysockets/baileys");
   }
-  const { default: makeWASocket, useMultiFileAuthState, DisconnectReason } = baileys;
 
-  const { state, saveCreds } = await useMultiFileAuthState("./auth_info");
+  const {
+    default: makeWASocket,
+    useMultiFileAuthState,
+    DisconnectReason,
+    fetchLatestBaileysVersion,
+  } = baileys;
+
+  const authPath = path.resolve("./auth_info");
+  const credsFile = path.join(authPath, "creds.json");
+
+  // 🧩 Delete auth only once when creds missing
+  if (firstRun && !fs.existsSync(credsFile)) {
+    console.log("🗑️ No valid creds found — deleting old auth_info for fresh QR...");
+    fs.rmSync(authPath, { recursive: true, force: true });
+  }
+  firstRun = false;
+
+  const { state, saveCreds } = await useMultiFileAuthState(authPath);
+
+  // ✅ Fetch latest version to ensure proper handshake
+  const { version, isLatest } = await fetchLatestBaileysVersion();
+  console.log(`📦 Using WhatsApp Web version: ${version.join(".")} (latest: ${isLatest})`);
 
   sock = makeWASocket({
+    version,
     auth: state,
     logger: P({ level: "silent" }),
-    printQRInTerminal: false // 👈 prevent Baileys from printing its QR
+    printQRInTerminal: false,
+    browser: ["ShipTracker", "Chrome", "10.0"], // ✅ required for proper QR handshake
+    markOnlineOnConnect: false,
   });
+
+  console.log("⏳ Waiting for WhatsApp to connect...");
 
   sock.ev.on("connection.update", async (update) => {
     const { connection, lastDisconnect, qr } = update;
 
     if (qr) {
-      console.log("📲 QR code received...");
+      console.log("📲 QR code received! Please scan it with WhatsApp.");
 
-      // Show QR in terminal (ASCII)
       qrcodeTerminal.generate(qr, { small: true });
-
-      // Save QR as PNG
-      const qrFilePath = path.resolve(__dirname, "whatsapp-qr.png");
+      const qrFilePath = path.join(process.cwd(), "whatsapp-qr.png");
       await QRCode.toFile(qrFilePath, qr);
-      console.log(`✅ QR code saved at ${qrFilePath}`);
+      console.log(`✅ QR saved at ${qrFilePath}`);
     }
 
-    if (connection === "close") {
+    if (connection === "open") {
+      console.log("✅ WhatsApp connected successfully!");
+    } else if (connection === "close") {
       const reason = lastDisconnect?.error?.output?.statusCode;
-      if (reason !== DisconnectReason.loggedOut) {
-        console.log("⚠️ Connection closed, restarting WhatsApp…");
+      console.log("⚠️ Connection closed:", reason || lastDisconnect?.error?.message);
+
+      if (reason === DisconnectReason.loggedOut) {
+        console.log("❌ Logged out — deleting auth and regenerating QR...");
+        fs.rmSync(authPath, { recursive: true, force: true });
+        await delay(3000);
         startWhatsApp();
       } else {
-        console.log("❌ Logged out from WhatsApp, please scan QR again");
+        console.log("🔁 Retrying in 5 seconds...");
+        await delay(5000);
+        startWhatsApp();
       }
-    } else if (connection === "open") {
-      console.log("✅ WhatsApp connected");
     }
   });
 
-  sock.ev.on("creds.update", saveCreds);
+  // 🧠 Listen for unexpected internal errors
+  sock.ev.on("error", (err) => {
+    console.error("🔥 Baileys internal error:", err);
+  });
 
+  sock.ev.on("creds.update", saveCreds);
   return sock;
+}
+
+// Utility for clean async waits
+function delay(ms) {
+  return new Promise((res) => setTimeout(res, ms));
 }
 
 function getSock() {
@@ -95,5 +134,5 @@ module.exports = {
   getSock,
   isConnected,
   isRegisteredUser,
-  sendWhatsAppNotification
+  sendWhatsAppNotification,
 };

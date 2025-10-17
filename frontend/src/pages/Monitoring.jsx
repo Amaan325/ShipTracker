@@ -3,10 +3,14 @@ import {
   getAllVessels,
   getAllVesselsForMap,
   getAllCompletedVessels,
+  deleteVessel,
 } from "../services/api";
 import { LiaShipSolid } from "react-icons/lia";
+import { FaTrashAlt } from "react-icons/fa";
 import ShipMapAll from "../components/Monitoring/ShipMapAll";
-import { formatShipName, toTitleCase } from "../utils/formatShipName"; // ✅ Import
+import { formatShipName, toTitleCase } from "../utils/formatShipName";
+import { useSnackbar } from "notistack";
+import { motion, AnimatePresence } from "framer-motion";
 
 const Monitoring = () => {
   const [vessels, setVessels] = useState([]);
@@ -15,6 +19,8 @@ const Monitoring = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [filter, setFilter] = useState("tracking");
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const { enqueueSnackbar } = useSnackbar();
 
   const fetchVessels = async (page = 1, activeFilter = filter) => {
     try {
@@ -27,6 +33,7 @@ const Monitoring = () => {
         const res = await getAllCompletedVessels(page, 10);
         data = res.data;
       }
+
       if (data?.success) {
         setVessels(data.vessels);
         setTotalPages(data.totalPages);
@@ -35,6 +42,7 @@ const Monitoring = () => {
       }
     } catch (err) {
       console.error("Error fetching vessels:", err);
+      enqueueSnackbar("Failed to load vessels.", { variant: "error" });
       setVessels([]);
     } finally {
       setLoading(false);
@@ -44,6 +52,7 @@ const Monitoring = () => {
   const fetchMapVessels = async () => {
     try {
       const { data } = await getAllVesselsForMap();
+      console.log("Map Vessels Data:", data);
       if (data?.success) setMapVessels(data.vessels);
     } catch (err) {
       console.error("Error fetching map vessels:", err);
@@ -60,10 +69,24 @@ const Monitoring = () => {
     return () => clearInterval(interval);
   }, []);
 
+  const handleConfirmDelete = async (id) => {
+    try {
+      await deleteVessel(id);
+      setVessels((prev) => prev.filter((v) => v._id !== id));
+      enqueueSnackbar("Vessel deleted successfully.", { variant: "success" });
+    } catch (err) {
+      console.error("Error deleting vessel:", err);
+      enqueueSnackbar("Failed to delete vessel.", { variant: "error" });
+    } finally {
+      setDeleteTarget(null);
+    }
+  };
+
   const headers = [
     "#",
     "Ship Name",
     "MMSI Number",
+    "Label",
     "Speed (knots)",
     "Destination",
     "ETA",
@@ -71,6 +94,7 @@ const Monitoring = () => {
     "Last Updated",
     "Selected Port",
     "Engineer",
+    "Actions",
   ];
 
   return (
@@ -81,8 +105,12 @@ const Monitoring = () => {
             <LiaShipSolid size={26} />
           </div>
           <div>
-            <h1 className="text-xl font-semibold text-gray-800">Vessel Monitoring</h1>
-            <p className="text-gray-500 text-sm">Real-time tracking of registered vessels</p>
+            <h1 className="text-xl font-semibold text-gray-800">
+              Vessel Monitoring
+            </h1>
+            <p className="text-gray-500 text-sm">
+              Real-time tracking of registered vessels
+            </p>
           </div>
         </header>
 
@@ -132,14 +160,19 @@ const Monitoring = () => {
                 <tbody>
                   {vessels.map((vessel, vIndex) => {
                     const engineerNames =
-                      Array.isArray(vessel.engineers) && vessel.engineers.length > 0
-                        ? vessel.engineers.map((e) => e.engineer_name).join(", ")
+                      Array.isArray(vessel.engineers) &&
+                      vessel.engineers.length > 0
+                        ? vessel.engineers
+                            .map((e) => e.engineer_name)
+                            .join(", ")
                         : "-";
 
                     return (
                       <tr
                         key={vessel._id}
-                        className={`${vIndex % 2 === 0 ? "bg-gray-900" : "bg-gray-700"} hover:bg-gray-600 transition`}
+                        className={`${
+                          vIndex % 2 === 0 ? "bg-gray-900" : "bg-gray-700"
+                        } hover:bg-gray-600 transition`}
                       >
                         <td className="px-4 py-3 border-b border-gray-700 text-gray-100 text-[13px] whitespace-nowrap">
                           {(currentPage - 1) * 10 + vIndex + 1}
@@ -149,6 +182,9 @@ const Monitoring = () => {
                         </td>
                         <td className="px-4 py-3 border-b border-gray-700 text-gray-100 text-[13px] whitespace-nowrap">
                           {vessel.mmsi || "-"}
+                        </td>
+                        <td className="px-4 py-3 border-b border-gray-700 text-gray-100 text-[13px] whitespace-nowrap">
+                          {vessel.label || "-"}
                         </td>
                         <td className="px-4 py-3 border-b border-gray-700 text-gray-100 text-[13px] whitespace-nowrap">
                           {vessel.sog ?? "-"}
@@ -161,12 +197,18 @@ const Monitoring = () => {
                         </td>
                         <td className="px-4 py-3 border-b border-gray-700 text-gray-100 text-[13px] whitespace-nowrap">
                           {vessel.trackingStartedAt
-                            ? new Date(vessel.trackingStartedAt).toLocaleString("en-GB", { timeZone: "UTC" }) + " GMT"
+                            ? new Date(
+                                vessel.trackingStartedAt
+                              ).toLocaleString("en-GB", { timeZone: "UTC" }) +
+                              " GMT"
                             : "-"}
                         </td>
                         <td className="px-4 py-3 border-b border-gray-700 text-gray-100 text-[13px] whitespace-nowrap">
                           {vessel.lastUpdated
-                            ? new Date(vessel.lastUpdated).toLocaleString("en-GB", { timeZone: "UTC" }) + " GMT"
+                            ? new Date(vessel.lastUpdated).toLocaleString(
+                                "en-GB",
+                                { timeZone: "UTC" }
+                              ) + " GMT"
                             : "-"}
                         </td>
                         <td className="px-4 py-3 border-b border-gray-700 text-gray-100 text-[13px] whitespace-nowrap">
@@ -188,6 +230,15 @@ const Monitoring = () => {
                             "-"
                           )}
                         </td>
+                        <td className="px-4 py-3 border-b border-gray-700 text-center whitespace-nowrap">
+                          <button
+                            onClick={() => setDeleteTarget(vessel._id)}
+                            className="text-red-500 hover:text-red-700 transition"
+                            title="Delete vessel"
+                          >
+                            <FaTrashAlt size={15} />
+                          </button>
+                        </td>
                       </tr>
                     );
                   })}
@@ -207,7 +258,9 @@ const Monitoring = () => {
                 Page {currentPage} of {totalPages}
               </span>
               <button
-                onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
+                onClick={() =>
+                  setCurrentPage((p) => Math.min(p + 1, totalPages))
+                }
                 disabled={currentPage === totalPages}
                 className="px-3 py-1 bg-blue-700 text-gray-200 rounded-2xl disabled:opacity-50"
               >
@@ -217,6 +270,47 @@ const Monitoring = () => {
           </>
         )}
       </div>
+
+      {/* ===== Delete Confirmation Modal ===== */}
+      <AnimatePresence>
+        {deleteTarget && (
+          <motion.div
+            className="fixed inset-0 bg-black/50 flex items-center justify-center z-[9999]"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            <motion.div
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.8, opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="bg-white rounded-2xl shadow-2xl p-6 w-80 text-center"
+            >
+              <h3 className="text-lg font-semibold text-gray-800 mb-3">
+                Confirm Deletion
+              </h3>
+              <p className="text-gray-600 mb-5">
+                Are you sure you want to delete this vessel?
+              </p>
+              <div className="flex justify-center gap-3">
+                <button
+                  onClick={() => handleConfirmDelete(deleteTarget)}
+                  className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition"
+                >
+                  Delete
+                </button>
+                <button
+                  onClick={() => setDeleteTarget(null)}
+                  className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition"
+                >
+                  Cancel
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

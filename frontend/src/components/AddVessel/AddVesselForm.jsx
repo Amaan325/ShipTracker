@@ -1,4 +1,4 @@
-import React, { useCallback } from "react";
+import React, { useCallback, useEffect } from "react";
 import VesselAutocomplete from "./VesselAutoComplete";
 import SelectField from "../common/SelectField";
 import InputField from "../common/InputField";
@@ -6,6 +6,7 @@ import { useSnackbar } from "notistack";
 import { IoLocationOutline } from "react-icons/io5";
 import { LiaShipSolid } from "react-icons/lia";
 import { RxPerson } from "react-icons/rx";
+import { MdLabelOutline } from "react-icons/md";
 
 const Section = React.memo(({ icon: Icon, title, children }) => (
   <div className="bg-white p-6 rounded-xl shadow-md border border-gray-200 space-y-4 w-full">
@@ -25,6 +26,8 @@ const AddVesselForm = ({
   selectedEngineers,
   ports,
   engineers,
+  label,
+  setLabel,
   submitText,
   loading,
   onVesselInputChange,
@@ -36,16 +39,24 @@ const AddVesselForm = ({
 }) => {
   const { enqueueSnackbar } = useSnackbar();
 
+  // 🧭 Log prop updates
+  useEffect(() => {
+    console.log("🧭 FORM PROPS → label:", label);
+  }, [label]);
+
   const handleSubmit = useCallback(
     (e) => {
       e.preventDefault();
+      console.log("🧭 handleSubmit triggered with label:", label);
+
       if (!/^\d{9}$/.test(mmsi)) {
         enqueueSnackbar("MMSI must be exactly 9 digits", { variant: "error" });
         return;
       }
+
       onSubmit(e);
     },
-    [mmsi, enqueueSnackbar, onSubmit]
+    [mmsi, enqueueSnackbar, onSubmit, label]
   );
 
   return (
@@ -53,7 +64,7 @@ const AddVesselForm = ({
       className="flex flex-col space-y-6 px-0 md:px-0 w-full"
       onSubmit={handleSubmit}
     >
-      {/* Ship Info */}
+      {/* 🚢 Ship Info */}
       <Section icon={LiaShipSolid} title="Ship Information">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           <VesselAutocomplete
@@ -75,20 +86,37 @@ const AddVesselForm = ({
             readOnly={!!selectedVessel}
           />
         </div>
-
-        {/* <InputField
-          label="IMO Number *"
-          type="text"
-          value={selectedVessel?.imo || ""}
-          readOnly
-        /> */}
       </Section>
 
-      {/* Engineer */}
-      {/* Engineer */}
+      {/* 🏷️ Label Section */}
+      <Section icon={MdLabelOutline} title="Vessel Label / Category">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          <div>
+            <label className="block text-gray-700 font-medium mb-2 text-sm">
+              Purpose Label
+            </label>
+            <select
+              value={label}
+              onChange={(e) => {
+                console.log("🧭 Label changed →", e.target.value);
+                setLabel(e.target.value);
+              }}
+              className="w-full bg-gray-100 border border-gray-300 rounded-lg shadow-sm px-4 py-2 text-left text-sm text-gray-700 hover:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-500 flex justify-between items-center"
+              required
+            >
+              <option value="Repair">Repair</option>
+              <option value="Install">Install</option>
+              <option value="Delivery/Collection">Delivery/Collection</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+        </div>
+      </Section>
+
+      {/* 👷 Engineer Assignment */}
       <Section icon={RxPerson} title="Engineer Assignment">
         <div className="space-y-3">
-          {/* Selected Engineers as tags */}
+          {/* Selected Engineers */}
           <div className="flex flex-wrap gap-2">
             {selectedEngineers.length > 0 ? (
               selectedEngineers.map((eng) => (
@@ -117,7 +145,7 @@ const AddVesselForm = ({
             )}
           </div>
 
-          {/* Dropdown */}
+          {/* Engineer Dropdown */}
           <div className="relative inline-block w-full">
             <button
               type="button"
@@ -145,7 +173,7 @@ const AddVesselForm = ({
               </svg>
             </button>
 
-            {/* Dropdown menu */}
+            {/* Dropdown Menu */}
             <div className="absolute z-10 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-56 overflow-y-auto hidden">
               {engineers.map((eng) => {
                 const isSelected = selectedEngineers.some(
@@ -179,13 +207,13 @@ const AddVesselForm = ({
         </div>
       </Section>
 
-      {/* Route */}
+      {/* 📍 Route Section */}
       <Section icon={IoLocationOutline} title="Route Information">
         <SelectField
           label="Expected Arrival Port"
-          value={selectedPort} // 👈 full object
+          value={selectedPort}
           onChange={onPortChange}
-          options={ports} // 👈 full objects
+          options={ports}
           placeholder="Select expected arrival port"
           required
           getOptionLabel={(p) => p.arrival_port_name}
@@ -193,7 +221,7 @@ const AddVesselForm = ({
         />
       </Section>
 
-      {/* Submit */}
+      {/* 🚀 Submit Button */}
       <div className="flex justify-end">
         <button
           type="submit"

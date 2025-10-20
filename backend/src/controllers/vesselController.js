@@ -224,7 +224,7 @@ const getAllVessels = async (req, res) => {
 const getAllVesselsForMap = async (req, res) => {
   try {
     const vessels = await Vessel.find(
-      {},
+      { status: "tracking" }, // ✅ only vessels with status 'tracking'
       {
         name: 1,
         mmsi: 1,
@@ -244,6 +244,7 @@ const getAllVesselsForMap = async (req, res) => {
       .json({ success: false, message: "Failed to fetch vessels for map" });
   }
 };
+
 
 // ✅ Get completed vessels
 const getAllCompletedVessels = async (req, res) => {
